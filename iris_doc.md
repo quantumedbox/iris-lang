@@ -18,3 +18,9 @@ goals:
   (if (<= n 1)
     n
     (+ (fib (dec n) (fib (- n 2))))))
+
+- customizable reader for extending functionalities
+(defn my-reader [string]
+  "receives string and parses it to list of code data"
+  (pass))
+(!set-reader my-reader)

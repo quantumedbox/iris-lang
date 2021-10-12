@@ -1,6 +1,6 @@
 #ifndef READER_H
 #define READER_H
 
-IrisList read_string(IrisString);
+IrisList iris_nurture_from_string(IrisString);
 
 #endif

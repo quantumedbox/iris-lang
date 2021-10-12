@@ -1,43 +1,111 @@
 #include <string.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "iris.h"
+#include "utils.h"
 #include "reader.h"
 
 #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough
+
+__forceinline bool is_whitespace(char ch) {
+  switch (ch) {
+    case  9: return true;
+    case 10: return true;
+    case 11: return true;
+    case 12: return true;
+    case 13: return true;
+    case 32: return true;
+    default: return false;
+  }
+}
 
 /*
   @brief  Skip any whitespace character
   @return How many characters were skipped
 */
-size_t parse_whitespace(const char* slice) {
+size_t eat_whitespace(const char* slice, const char* limit) {
+  assert(slice <= limit);
   const char* ptr = slice;
-  while (true) {
-    switch (*ptr++) {
-      case 9: continue;
-      case 10: continue;
-      case 11: continue;
-      case 12: continue;
-      case 13: continue;
-      case 32: continue;
-      // case 160: continue;
-      default: //
+  while (limit >= ptr) {
+    if (is_whitespace(*ptr)) {
+      ptr++;
+    } else {
+      break;
     }
-    break;
   }
   return (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
 }
 
-// enum ParseStateBit {
-//   psSymbol  = 0x1,
-//   psString  = 0x2,
-//   psInt     = 0x4,
-//   psQuote   = 0x8,
-// };
+/*
+  @brief  Try to parse iris integer from byte stream
+          On success valid integer IrisObject variant will be written
+          Also it's guaranteed that on failure pointed target will not change
+  @return True on success, otherwise false
+*/
+bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+  assert(slice <= limit);
+  assert(target != NULL);
+  assert(parsed != NULL);
+  const char* ptr = slice;
+  if ((*ptr >= '1') && (*ptr <= '9')) {
+    IrisObject result = { .kind = okInt, .int_variant = (*ptr - '0') };
+    ptr++;
+    while (limit >= ptr) {
+      if ((*ptr >= '0') && (*ptr <= '9')) {
+        int check = result.int_variant;
+        result.int_variant = result.int_variant * 10 + (*ptr - '0');
+        iris_assert(check < result.int_variant, "can't contain given value in iris integer object (overflow detected)");
+        ptr++;
+      } else {
+        break;
+      }
+    }
+    *target = result;
+    *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
+    return true;
+  }
+  return false;
+}
 
-IrisList read_string(IrisString str) {
-  IrisList module = new_list(); // top-most lists are part of it
-  IrisList* stack[LIST_RECURSION_PARSE_LIMIT];
-  size_t stack_len = 0;
-  size_t pos = 0;
+IrisList iris_nurture_from_string(IrisString str) {
+  IrisList result = new_list(); // top-most lists are part of it
+  IrisList* stack[LIST_RECURSION_PARSE_LIMIT]; // points at lists that aren't finalized yet
+  stack[0] = &result;
+  size_t stack_pos = 0;
+  size_t str_pos = 0;
 
+  while (str_pos != str.len) {
+    assert(str_pos < str.len);
+    str_pos += eat_whitespace(&str.data[str_pos], &str.data[str.len]);
+    if (str_pos == str.len) { break; }
+    char cur = nth_char(str, str_pos);
+    switch (cur) {
+      case '(': {
+        push_list(stack[stack_pos], new_list());
+        iris_assert(stack_pos < LIST_RECURSION_PARSE_LIMIT, "scope stack overflow");
+        stack[stack_pos + 1] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
+        stack_pos++;
+        str_pos++;
+        continue;
+      }
+      case ')': {
+        iris_assert(stack_pos > 0, "attempt to close nonexistent list");
+        stack_pos--;
+        str_pos++;
+        continue;
+      }
+      default: {
+        IrisObject obj_parsed;
+        size_t chars_parsed;
+        if (parse_int(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
+          push_int(stack[stack_pos], obj_parsed.int_variant);
+          str_pos += chars_parsed;
+        } else {
+          panic("unknown character");
+        }
+      }
+    }
+  }
+  iris_assert(stack_pos == 0, "trailing unclosed list");
+  return result;
 }
