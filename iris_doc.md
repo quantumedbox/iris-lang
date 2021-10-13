@@ -1,8 +1,8 @@
 lisp
 ====
-
 goals:
 -----
+- be poetic
 - typed-by-default and high-performant lisp
 - metaprogramming / generalization is key
 - optimizable by design

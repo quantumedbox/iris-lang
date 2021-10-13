@@ -1,35 +1,25 @@
 #ifndef IRIS_H
 #define IRIS_H
 
+// todo: move it to build solution
 #define IRIS_BOUND_CHECK
 
-// todo: rename to types.h? or something like that, iris.h should be external user include
+// todo: rename to types.h? or something like that, iris.h should be external include
+// todo: strings should be immutable, but there should be a way for constructing them in parts, something like 'string_builder' type
+// todo: strings should be hashed on creation
+// todo: hide fields of structs from user, objects should be opaque 
+// todo: consistent naming
+// todo: currently pushing and freeing doesn't change pushed and freed objects as they're not passed by ref
+//       it might produce dangling pointers that are impossible to diagnose
+// todo: implement vectors and make usage of them in dict implementation?
 
-#include <stdio.h>
-#include <stdlib.h>
+// warn! anything prefixed with 'push' invalidates passed objects
+
 #include <string.h>
+#include <stdio.h>
+#include <stdbool.h>
 
-// todo: move it to memory.h
-#ifndef IRIS_ALLOC
-#define IRIS_ALLOC(size) malloc(size);
-#define IRIS_RESIZE(ptr, size) realloc(ptr, size);
-#define IRIS_FREE(ptr) free(ptr);
-#endif
-
-// todo: do we need to check for NULL return from malloc? lol
-// or we should assume that everything is fucked at that point
-// todo: make it inline function instead with possibility of gathering metrics
-#define iris_alloc(size, type) (type*)IRIS_ALLOC(size * sizeof(type))
-#define iris_resize(ptr, size, type) (type*)IRIS_RESIZE(ptr, size * sizeof(type))
-#define iris_free(ptr) IRIS_FREE(ptr)
-
-// todo: definition shouldn't be in header
-__forceinline void* iris_alloc0_untyped(size_t size) {
-  void* mem = IRIS_ALLOC(size);
-  memset(mem, 0, size);
-  return mem;
-}
-#define iris_alloc0(size, type) (type*)iris_alloc0_untyped(size * sizeof(type));
+#include "memory.h"
 
 enum ObjectKind {
   okNone,
@@ -37,18 +27,20 @@ enum ObjectKind {
   okSymbol,
   okString,
   okList,
+  okDict,
   N_OBJECT_KINDS
 };
 
 typedef struct {
   // iris byte strings are immutable and not null terminated
-  // they don't have eny encoding attached by themselves
-  size_t len;
+  // they don't have eny encoding attached and are hashed on creation
+  // todo: should we allow strings of 0 length?
   char* data;
+  size_t len;
+  size_t hash;
 } IrisString;
 
-struct _IrisObject;
-typedef struct _IrisList {
+typedef struct {
   // iris lists are arrays which do act like typical lisp linked lists
   // by making elements stored in reversed order which allows O(1) insertions to 'head'
   struct _IrisObject* items;
@@ -56,27 +48,56 @@ typedef struct _IrisList {
   size_t cap;
 } IrisList;
 
+typedef struct {
+  // iris hash tables only store hashes of objects and are designed mostly for lookup of module scopes
+  // as original objects from which hash is coming aren't saved you can't use them again
+  // but you really shouldn't in the first place, hash tables aren't designed for that
+  // order isn't preserved
+  // frankly, current implementation doesn't really care about distributions and probings, we might focus on that in the future
+  struct _IrisDictBucket* buckets;
+  size_t card; // cardinality aka amount of key/item pairs
+  size_t cap;  // allocated buckets
+} IrisDict;
+
 typedef struct _IrisObject {
   // polymorphic container, mostly used for representing code as data
+  // homogeneous containers should be proffered
   int kind;
   union {
-    int           int_variant;
-    IrisString    symbol_variant;
-    IrisList      list_variant;
+    int         int_variant;
+    IrisString  string_variant;
+    IrisList    list_variant;
+    IrisDict    dict_variant;
   };
-} IrisObject; // variant object
+} IrisObject;
+
+#define string_to_object(str) (IrisObject){ .kind = okString, .string_variant = str }
+
+void free_object(IrisObject);
 
 IrisList new_list();
 void push_object(IrisList*, IrisObject);
 void push_int(IrisList*, int);
-void push_symbol(IrisList*, IrisString);
+void push_string(IrisList*, IrisString);
 void push_list(IrisList*, IrisList);
 void free_list(IrisList);
 
+IrisDict dict_new();
+void dict_push_object(IrisDict*, size_t key, IrisObject item);
+bool dict_has(IrisDict, size_t key);
+void dict_free(IrisDict);
+
+bool string_is_valid(IrisString str);
 IrisString string_from_chars(const char*);
 IrisString string_from_file(FILE*);
+IrisString string_from_view(const char* low, const char* high);
 char nth_char(IrisString, size_t idx);
-// IrisString string_from_slice(IrisString, size_t low, size_t high);
 void free_string(IrisString);
+
+void print_string(IrisString, bool newline);
+void print_string_debug(IrisString, bool newline);
+void print_list(IrisList, bool newline);
+void print_list_debug(IrisList, bool newline);
+void print_dict(IrisDict, bool newline);
 
 #endif

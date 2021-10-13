@@ -1,9 +1,13 @@
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
+
 #include "iris.h"
 #include "utils.h"
 #include "reader.h"
+
+// todo: symbol parsing is bugged on such case: (test (test))
+// todo: require spaces between in-list objects
 
 #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough
 
@@ -19,9 +23,19 @@ __forceinline bool is_whitespace(char ch) {
   }
 }
 
+__forceinline bool is_reserved_char(char ch) {
+  switch (ch) {
+    case '\'': return true;
+    case '\"': return true;
+    case '(': return true;
+    case ')': return true;
+    default:   return false;
+  }
+}
+
 /*
   @brief  Skip any whitespace character
-  @return How many characters were skipped
+  @return How many characters are skipped
 */
 size_t eat_whitespace(const char* slice, const char* limit) {
   assert(slice <= limit);
@@ -36,6 +50,8 @@ size_t eat_whitespace(const char* slice, const char* limit) {
   return (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
 }
 
+// todo: parse 0
+// todo: parse negative
 /*
   @brief  Try to parse iris integer from byte stream
           On success valid integer IrisObject variant will be written
@@ -67,12 +83,70 @@ bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char
   return false;
 }
 
-IrisList iris_nurture_from_string(IrisString str) {
+/*
+  @brief  Try to parse iris symbol from byte stream
+          Valid chars are anything but reserved symbols and whitespace
+          On success valid symbol IrisObject variant will be written
+          Also it's guaranteed that on failure pointed target will not change
+  @return True on success, otherwise false
+*/
+bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+  assert(slice <= limit);
+  assert(target != NULL);
+  assert(parsed != NULL);
+  const char* ptr = slice;
+  IrisObject result = { .kind = okString };
+  while (limit >= ptr) {
+    if (!is_reserved_char(*ptr) && !is_whitespace(*ptr)) {
+      ptr++;
+    } else {
+      break;
+    }
+  }
+  if (ptr == slice) {
+    return false;
+  }
+  result.string_variant = string_from_view(slice, ptr);
+  *target = result;
+  *parsed = result.string_variant.len;
+  return true;
+}
+
+/*
+  @brief  Try to parse iris string from byte stream
+          On success valid symbol IrisObject variant will be written
+          Also it's guaranteed that on failure pointed target will not change
+  @return True on success, otherwise false
+*/
+bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+  assert(slice <= limit);
+  assert(target != NULL);
+  assert(parsed != NULL);
+  const char* ptr = slice;
+  if (*ptr == '\"') {
+    IrisObject result = { .kind = okString };
+    ptr++;
+    while (limit >= ptr) {
+      if (*ptr != '\"') {
+        ptr++;
+      } else {
+        result.string_variant = string_from_view(slice + 1, ptr);
+        *target = result;
+        *parsed = result.string_variant.len + 2LU;
+        return true;
+      }
+    }
+    panic("trailing unclosed string");
+  }
+  return false;
+}
+
+IrisList nurture(IrisString str) {
   IrisList result = new_list(); // top-most lists are part of it
   IrisList* stack[LIST_RECURSION_PARSE_LIMIT]; // points at lists that aren't finalized yet
   stack[0] = &result;
-  size_t stack_pos = 0;
-  size_t str_pos = 0;
+  size_t stack_pos = 0ULL;
+  size_t str_pos = 0ULL;
 
   while (str_pos != str.len) {
     assert(str_pos < str.len);
@@ -83,15 +157,26 @@ IrisList iris_nurture_from_string(IrisString str) {
       case '(': {
         push_list(stack[stack_pos], new_list());
         iris_assert(stack_pos < LIST_RECURSION_PARSE_LIMIT, "scope stack overflow");
-        stack[stack_pos + 1] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
+        stack[stack_pos + 1ULL] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
         stack_pos++;
         str_pos++;
         continue;
       }
       case ')': {
-        iris_assert(stack_pos > 0, "attempt to close nonexistent list");
+        iris_assert(stack_pos > 0ULL, "attempt to close nonexistent list");
         stack_pos--;
         str_pos++;
+        continue;
+      }
+      case ';': {
+        do {
+          str_pos++;
+          if (nth_char(str, str_pos) == '\n') {
+            str_pos++;
+            break;
+          }
+        }
+        while (str_pos < str.len);
         continue;
       }
       default: {
@@ -100,12 +185,18 @@ IrisList iris_nurture_from_string(IrisString str) {
         if (parse_int(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
           push_int(stack[stack_pos], obj_parsed.int_variant);
           str_pos += chars_parsed;
+        } else if (parse_marked_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
+          push_string(stack[stack_pos], obj_parsed.string_variant);
+          str_pos += chars_parsed;
+        } else if (parse_atomic_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
+          push_string(stack[stack_pos], obj_parsed.string_variant);
+          str_pos += chars_parsed;
         } else {
           panic("unknown character");
         }
       }
     }
   }
-  iris_assert(stack_pos == 0, "trailing unclosed list");
+  iris_assert(stack_pos == 0ULL, "trailing unclosed list");
   return result;
 }

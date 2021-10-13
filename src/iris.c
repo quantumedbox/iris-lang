@@ -4,17 +4,193 @@
 #include "iris.h"
 #include "utils.h"
 
-#define LIST_PREALLOC 4
-#define STRING_PREALLOC 8
+// todo: push_* functions should have specified behaviour
+//       but should they move values or copy them?
+//       we probably need another class of functions for copies specifically
+//       also we need to invalidate original moved objects, so, maybe require passing mutable pointer?
+
+#define LIST_PREALLOC 4U
+#define STRING_PREALLOC 8U
+#define DICT_PREALLOC 4U
+#define DICT_GROW_FACTOR 4U // == 1 - (1 / 4) // capacity multiplies by two when factor is equal or greater than cardinality
+
+static_assert(LIST_PREALLOC > 0U, "list preallocation shouldn't be 0");
+static_assert(STRING_PREALLOC > 0U, "string preallocation shouldn't be 0");
+static_assert(DICT_PREALLOC > 0U && (DICT_PREALLOC & (DICT_PREALLOC - 1U)) == 0U, "starting bucket capacity of dict should be power of 2");
+static_assert(DICT_GROW_FACTOR > 1U, "invalid dict grow factor");
+
+typedef struct {
+  size_t key; // hash
+  IrisObject item;
+} IrisDictPair;
+
+typedef struct _IrisDictBucket {
+  // dict buckets are implemented as vectors
+  IrisDictPair* pairs;
+  size_t len;
+} IrisDictBucket;
+
+IrisDict dict_new() {
+  IrisDict result = {0};
+  result.buckets = iris_alloc0(DICT_PREALLOC, IrisDictBucket);
+  result.cap = DICT_PREALLOC;
+  return result;
+}
+
+// todo: we shouldn't have two versions of funcs, they make maintaining harder
+__forceinline void dict_free_buckets(IrisDictBucket* buckets, size_t len) {
+  assert(buckets != NULL);
+  for (size_t b = 0ULL; b < len; b++) {
+    for (size_t p = 0ULL; p < buckets[b].len; p++) {
+      assert(buckets[b].pairs != NULL);
+      free_object(buckets[b].pairs[p].item);
+    }
+    if (buckets[b].pairs != NULL) {
+      iris_free(buckets[b].pairs);
+    }
+  }
+  iris_free(buckets);
+}
+
+/*
+  @brief  dict_free_buckets version that assumes that pairs were moved and shouldn't be freed
+*/
+__forceinline void dict_free_buckets_after_move(IrisDictBucket* buckets, size_t len) {
+  assert(buckets != NULL);
+  for (size_t b = 0ULL; b < len; b++) {
+    for (size_t p = 0ULL; p < buckets[b].len; p++) {
+      assert(buckets[b].pairs != NULL);
+    }
+    if (buckets[b].pairs != NULL) {
+      iris_free(buckets[b].pairs);
+    }
+  }
+  iris_free(buckets);
+}
+
+void dict_free(IrisDict dict) {
+  dict_free_buckets(dict.buckets, dict.cap);
+}
+
+__forceinline void dict_move_pair(IrisDictBucket* buckets,
+                                  size_t len,
+                                  IrisDictPair pair)
+{
+  size_t idx = pair.key % len;
+  buckets[idx].pairs = iris_resize(buckets[idx].pairs, buckets[idx].len + 1ULL, IrisDictPair);
+  buckets[idx].pairs[len] = pair;
+  buckets[idx].len++;
+}
+
+__forceinline void dict_grow(IrisDict* dict) {
+  if (dict->card >= (dict->cap - (dict->cap / DICT_GROW_FACTOR))) {
+    size_t new_cap = dict->cap << 1ULL;
+    IrisDictBucket* new_buckets = iris_alloc0(new_cap, IrisDictBucket);
+    for (size_t b = 0; b < dict->cap; b++) {
+      for (size_t p = 0; p < dict->buckets[b].len; p++) {
+        dict_move_pair(new_buckets, new_cap, dict->buckets[b].pairs[p]);
+      }
+    }
+    dict_free_buckets_after_move(dict->buckets, dict->cap);
+    dict->buckets = new_buckets;
+    dict->cap = new_cap;
+  }
+}
+
+void dict_push_object(IrisDict* dict, size_t key, IrisObject item) {
+  dict_grow(dict);
+  size_t idx = key % dict->cap;
+  for (size_t i = 0; i < dict->buckets[idx].len; i++) {
+    // search if key is already present, - then update the pair
+    if (dict->buckets[idx].pairs[i].key == key) {
+      free_object(dict->buckets[idx].pairs[i].item);
+      dict->buckets[idx].pairs[i].item = item;
+      return;
+    }
+  }
+  // otherwise append new pair to bucket vector
+  dict->buckets[idx].pairs = iris_resize(
+    dict->buckets[idx].pairs,
+    dict->buckets[idx].len + 1ULL,
+    IrisDictPair
+  );
+  IrisDictPair pair = { .key = key, .item = item };
+  dict->buckets[idx].pairs[dict->buckets[idx].len] = pair;
+  dict->buckets[idx].len++;
+}
+
+bool dict_has(IrisDict dict, size_t key) {
+  size_t idx = key % dict.cap;
+  for (size_t i = 0; i < dict.buckets[idx].len; i++) {
+    if (dict.buckets[idx].pairs[i].key == key) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void free_object(IrisObject obj) {
+  switch (obj.kind) {
+    case okInt: break;
+    case okString:
+      free_string(obj.string_variant);
+      break;
+    case okList:
+      free_list(obj.list_variant);
+      break;
+    default:
+      panic("free behavior for object variant isn't defined");
+  }
+}
+
+// todo: can we check if data len is equal to len of string?
+//       as we don't require null termination data by itself has no marker of end
+bool string_is_valid(IrisString str) {
+  if (str.len == 0U || str.data == NULL) {
+    return false;
+  }
+  return true;
+}
+
+/*
+  @brief  djb2 hashing algorithm
+          fast, but not sure about distribution
+*/
+__forceinline void string_hash(IrisString* str) {
+  assert(str != NULL);
+  assert(string_is_valid(*str));
+  size_t hash = 5381ULL;
+  for (size_t i = 0; i < str->len; i++) {
+    hash = ((hash << 5ULL) + hash) + str->data[i];
+  }
+  str->hash = hash;
+}
 
 IrisString string_from_chars(const char* chars) {
-  IrisString result = {0};
+  assert(chars != NULL);
   size_t len = strlen(chars);
-  result.data = iris_alloc(len, char);
-  while (*chars != '\0') {
-    result.data[result.len++] = *chars;
-    chars++;
+  IrisString result = {
+    .data = iris_alloc(len, char),
+    .len = len
+  };
+  for (size_t i = 0ULL; i < len; i++) {
+    result.data[i] = chars[i];
   }
+  string_hash(&result);
+  return result;
+}
+
+IrisString string_from_view(const char* low, const char* high) {
+  assert(low != NULL);
+  assert(high != NULL);
+  assert(low < high);
+  size_t len = (size_t)(((ptrdiff_t)high - (ptrdiff_t)low) / sizeof(char));
+  IrisString result = {
+    .data = iris_alloc(len, char),
+    .len = len
+  };
+  memcpy(result.data, low, high - low);
+  string_hash(&result);
   return result;
 }
 
@@ -47,6 +223,7 @@ IrisString string_from_file(FILE* file) {
     ferror_panic(file);
   }
   result.data = iris_resize(result.data, result.len, char);
+  string_hash(&result);
   return result;
 }
 
@@ -58,7 +235,8 @@ char nth_char(IrisString str, size_t idx) {
 }
 
 void free_string(IrisString str) {
-  // todo: should we check for double free?
+  assert(str.data != NULL);
+  assert(str.len != 0ULL);
   iris_free(str.data);
 }
 
@@ -77,7 +255,8 @@ __forceinline void list_grow(IrisList* list) {
 }
 
 /*
-  @brief  Appends copy of object to list
+  @brief  Moves variant object to list
+  @warn   Passed object should no longer be used!
 */
 void push_object(IrisList* list, IrisObject obj) {
   list_grow(list);
@@ -90,6 +269,9 @@ void push_object(IrisList* list, IrisObject obj) {
   }
 }
 
+/*
+  @brief  Moves integer into list
+*/
 void push_int(IrisList* list, int val) {
   list_grow(list);
   IrisObject item = { .kind = okInt, .int_variant = val };
@@ -97,13 +279,21 @@ void push_int(IrisList* list, int val) {
   list->len++;
 }
 
-void push_symbol(IrisList* list, IrisString str) {
+/*
+  @brief  Moves string into list as string object
+  @warn   Passed string should no longer be used!
+*/
+void push_string(IrisList* list, IrisString str) {
   list_grow(list);
-  IrisObject item = { .kind = okSymbol, .symbol_variant = str };
+  IrisObject item = { .kind = okString, .string_variant = str };
   list->items[list->len] = item;
   list->len++;
 }
 
+/*
+  @brief  Moves list into list
+  @warn   Passed list should no longer be used!
+*/
 void push_list(IrisList* list, IrisList val_list) {
   list_grow(list);
   IrisObject item = { .kind = okList, .list_variant = val_list };
@@ -112,6 +302,72 @@ void push_list(IrisList* list, IrisList val_list) {
 }
 
 void free_list(IrisList list) {
-  // todo: should we check for double free?
+  assert(list.items != NULL);
+  for (size_t i = 0ULL; i < list.len; i++) {
+    free_object(list.items[i]);
+  }
   iris_free(list.items);
+}
+
+void print_object(IrisObject obj) {
+  switch (obj.kind) {
+    case okList:
+      print_list(obj.list_variant, false);
+      break;
+    case okInt:
+      fprintf(stdout, "%d", obj.int_variant);
+      break;
+    case okString:
+      print_string(obj.string_variant, false);
+      break;
+    default: panic("printing behaviour for obj type isn't defined");
+  }
+}
+
+void print_string(IrisString str, bool newline) {
+  fprintf(stdout, "\"%.*s\"", (int)str.len, str.data);
+  if (newline) { fputc('\n', stdout); }
+}
+
+void print_string_debug(IrisString str, bool newline) {
+  fprintf(stdout, "(\"%.*s\" : len: %llu, hash: %llu)", (int)str.len, str.data, str.len, str.hash);
+  if (newline) { fputc('\n', stdout); }
+}
+
+void print_list_debug(IrisList list, bool newline) {
+  fputc('(', stdout);
+  for (size_t i = 0ULL; i < list.len; i++) {
+    if (i != 0ULL) { fputc(' ', stdout); }
+    print_object(list.items[i]);
+  }
+  fputc(')', stdout);
+  if (newline) { fputc('\n', stdout); }
+}
+
+void print_list(IrisList list, bool newline) {
+  fputc('(', stdout);
+  for (size_t i = 0ULL; i < list.len; i++) {
+    print_object(list.items[i]);
+  }
+  fputc(')', stdout);
+  if (newline) { fputc('\n', stdout); }
+}
+
+void print_dict(IrisDict dict, bool newline) {
+  fputc('{', stdout);
+  bool put_comma = false;
+  for (size_t b = 0; b < dict.cap; b++) {
+    for (size_t p = 0; p < dict.buckets[b].len; p++) {
+      if (!put_comma) {
+        put_comma = true;
+      } else {
+        fputc(',', stdout);
+        fputc(' ', stdout);
+      }
+      fprintf(stdout, "%llu: ", dict.buckets[b].pairs[p].key);
+      print_object(dict.buckets[b].pairs[p].item);
+    }
+  }
+  fputc('}', stdout);
+  if (newline) { fputc('\n', stdout); }
 }
