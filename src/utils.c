@@ -15,18 +15,25 @@ void iris_assert(bool status, const char* msg) {
   }
 }
 
+void warning(bool status, const char* msg) {
+  iris_assert(msg != NULL, "NULL passed as panic message");
+  if (status) {
+    (void)fprintf(stderr, "warning! %s\n", msg);
+  }
+}
+
 _Noreturn void errno_panic() {
-  fprintf(stderr, "program panicked with %d errno value\n", errno);
+  (void)fprintf(stderr, "program panicked with %d errno value\n", errno);
   exit(1);
 }
 
 _Noreturn void ferror_panic(FILE* file) {
-  fprintf(stderr, "program panicked on file operation with %d value\n", ferror(file));
+  (void)fprintf(stderr, "program panicked on file operation with %d value\n", ferror(file));
   exit(1);
 }
 
 _Noreturn void panic(const char* msg) {
   iris_assert(msg != NULL, "NULL passed as panic message");
-  fprintf(stderr, "program panicked with message: \"%s\"\n", msg);
+  (void)fprintf(stderr, "program panicked with message: \"%s\"\n", msg);
   exit(1);
 }

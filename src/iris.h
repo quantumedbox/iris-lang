@@ -28,6 +28,7 @@ enum ObjectKind {
   okString,
   okList,
   okDict,
+  okRefCell,
   N_OBJECT_KINDS
 };
 
@@ -59,6 +60,15 @@ typedef struct {
   size_t cap;  // allocated buckets
 } IrisDict;
 
+// todo:
+typedef struct {
+  // if need for shared ownership arises - one can use reference counter
+  // it's implemented as object that holds some opaque identity value
+  // that corresponds with some object in global pool
+  // identities are untyped, but it's guaranteed that they point to valid IrisObject if validity check says so
+  size_t identity;
+} IrisRefCell;
+
 typedef struct _IrisObject {
   // polymorphic container, mostly used for representing code as data
   // homogeneous containers should be proffered
@@ -73,26 +83,26 @@ typedef struct _IrisObject {
 
 #define string_to_object(str) (IrisObject){ .kind = okString, .string_variant = str }
 
-void free_object(IrisObject);
+void free_object(IrisObject*);
 
 IrisList new_list();
-void push_object(IrisList*, IrisObject);
+void push_object(IrisList*, IrisObject*);
 void push_int(IrisList*, int);
-void push_string(IrisList*, IrisString);
-void push_list(IrisList*, IrisList);
-void free_list(IrisList);
+void push_string(IrisList*, IrisString*);
+void push_list(IrisList*, IrisList*);
+void free_list(IrisList*);
 
 IrisDict dict_new();
-void dict_push_object(IrisDict*, size_t key, IrisObject item);
+void dict_push_object(IrisDict*, size_t key, IrisObject* item);
 bool dict_has(IrisDict, size_t key);
-void dict_free(IrisDict);
+void dict_free(IrisDict*);
 
 bool string_is_valid(IrisString str);
 IrisString string_from_chars(const char*);
 IrisString string_from_file(FILE*);
 IrisString string_from_view(const char* low, const char* high);
 char nth_char(IrisString, size_t idx);
-void free_string(IrisString);
+void free_string(IrisString*);
 
 void print_string(IrisString, bool newline);
 void print_string_debug(IrisString, bool newline);

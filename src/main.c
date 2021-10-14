@@ -8,15 +8,15 @@ void dict_test() {
   IrisString str2 = string_from_chars("that's it!");
   IrisString str3 = string_from_chars("nah...");
   IrisString str4 = string_from_chars("another!...");
-  IrisString str5 = string_from_chars("even more...");
-  // todo: dict_push_string
-  dict_push_object(&dict_test, str1.hash, string_to_object(str1));
-  dict_push_object(&dict_test, str2.hash, string_to_object(str2));
-  dict_push_object(&dict_test, str3.hash, string_to_object(str3));
-  dict_push_object(&dict_test, str4.hash, string_to_object(str4));
-  dict_push_object(&dict_test, str5.hash, string_to_object(str5));
+  // IrisString str5 = string_from_chars("even more...");
+  // todo: dict_push_string?
+  dict_push_object(&dict_test, str1.hash, &string_to_object(str1));
+  dict_push_object(&dict_test, str2.hash, &string_to_object(str2));
+  dict_push_object(&dict_test, str3.hash, &string_to_object(str3));
+  // dict_push_object(&dict_test, str4.hash, &string_to_object(str4));
+  // dict_push_object(&dict_test, str5.hash, &string_to_object(str5));
   print_dict(dict_test, true);
-  dict_free(dict_test);
+  dict_free(&dict_test);
 }
 
 int main(int argc, const char** argv) {
@@ -26,8 +26,8 @@ int main(int argc, const char** argv) {
   if (string_is_valid(source)) {
     IrisList sprout = nurture(source);
     print_list_debug(sprout, true);
-    free_list(sprout);
-    free_string(source);
+    free_list(&sprout);
+    free_string(&source);
   }
   #ifdef IRIS_COLLECT_MEMORY_METRICS
   iris_metrics_print();

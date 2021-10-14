@@ -155,7 +155,8 @@ IrisList nurture(IrisString str) {
     char cur = nth_char(str, str_pos);
     switch (cur) {
       case '(': {
-        push_list(stack[stack_pos], new_list());
+        IrisList list = new_list();
+        push_list(stack[stack_pos], &list);
         iris_assert(stack_pos < LIST_RECURSION_PARSE_LIMIT, "scope stack overflow");
         stack[stack_pos + 1ULL] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
         stack_pos++;
@@ -186,10 +187,10 @@ IrisList nurture(IrisString str) {
           push_int(stack[stack_pos], obj_parsed.int_variant);
           str_pos += chars_parsed;
         } else if (parse_marked_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          push_string(stack[stack_pos], obj_parsed.string_variant);
+          push_string(stack[stack_pos], &obj_parsed.string_variant);
           str_pos += chars_parsed;
         } else if (parse_atomic_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          push_string(stack[stack_pos], obj_parsed.string_variant);
+          push_string(stack[stack_pos], &obj_parsed.string_variant);
           str_pos += chars_parsed;
         } else {
           panic("unknown character");

@@ -6,6 +6,7 @@
 #include "iris.h"
 
 void iris_assert(bool, const char*);
+void warning(bool, const char*);
 
 _Noreturn void errno_panic();
 _Noreturn void ferror_panic(FILE*);
