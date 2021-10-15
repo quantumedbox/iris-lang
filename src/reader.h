@@ -1,5 +1,8 @@
-#ifndef READER_H
-#define READER_H
+#ifndef IRIS_READER_H
+#define IRIS_READER_H
+
+#include "types/string.h"
+#include "types/list.h"
 
 typedef IrisList (*IrisReader)(IrisString);
 

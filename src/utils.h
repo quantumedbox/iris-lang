@@ -1,11 +1,10 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef IRIS_UTILS_H
+#define IRIS_UTILS_H
 
-#include <stdbool.h>
 #include <stdio.h>
-#include "iris.h"
+#include <stdbool.h>
 
-void iris_assert(bool, const char*);
+void iris_check(bool, const char*);
 void warning(bool, const char*);
 
 _Noreturn void errno_panic();

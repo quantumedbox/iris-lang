@@ -7,7 +7,7 @@
 #include "utils.h"
 
 // todo: it's possible to log status and lifetime changes of every allocation
-// todo: something similar to mcheck.h functionalities by IRIS_CHECK_ALLOCATIONS
+// todo: something similar to mcheck.h functionalities, we could trace double frees and validity of pointers as allocations
 
 bool is_pointer_valid(const void* p) {
   // extern char etext;
@@ -25,59 +25,54 @@ IrisPointerStatus pointer_status(const void* p) {
   }
 }
 
+#ifdef IRIS_COLLECT_MEMORY_METRICS
 unsigned int n_allocations = 0U;
 unsigned int n_resizes = 0U;
 unsigned int n_frees = 0U;
+#endif
 
 void* iris_standard_alloc(size_t bytes) {
-  warning(bytes == 0, "0 sized allocations aren't defined");
+  if (bytes == 0) {
+    return NULL;
+  }
   void* mem = malloc(bytes);
   assert(is_pointer_valid(mem));
+  #ifdef IRIS_COLLECT_MEMORY_METRICS
+  n_allocations++;
+  #endif
+  // printf("%x\n", mem);
   return mem;
 }
 
 void* iris_standard_resize(void* mem, size_t bytes) {
   if (mem == NULL) {
-    return iris_metrics_alloc(bytes);
+    return iris_standard_alloc(bytes);
+  } else if (bytes == 0) {
+    iris_standard_free(mem);
+    return NULL;
   }
-  void* resized = realloc(mem, bytes);
   assert(is_pointer_valid(mem));
+  void* resized = realloc(mem, bytes);
+  assert(is_pointer_valid(resized)); // todo: shouldn't be assert, but user code catch-able error
+  #ifdef IRIS_COLLECT_MEMORY_METRICS
+  n_resizes++;
+  #endif
+  // printf("%x\n", resized);
   return resized;
 }
 
 void iris_standard_free(void* mem) {
   assert(is_pointer_valid(mem));
   free(mem);
+  #ifdef IRIS_COLLECT_MEMORY_METRICS
+  n_frees++;
+  #endif
 }
 
 void* iris_alloc0_untyped(size_t bytes) {
   void* mem = IRIS_ALLOC(bytes);
   memset(mem, 0, bytes);
   return mem;
-}
-
-void* iris_metrics_alloc(size_t bytes) {
-  warning(bytes == 0, "0 sized allocations aren't defined");
-  void* mem = malloc(bytes);
-  assert(is_pointer_valid(mem));
-  n_allocations++;
-  return mem;
-}
-
-void* iris_metrics_resize(void* mem, size_t bytes) {
-  if (mem == NULL) {
-    return iris_metrics_alloc(bytes);
-  }
-  void* resized = realloc(mem, bytes);
-  assert(is_pointer_valid(mem));
-  n_resizes++;
-  return resized;
-}
-
-void iris_metrics_free(void* mem) {
-  assert(is_pointer_valid(mem));
-  free(mem);
-  n_frees++;
 }
 
 void iris_metrics_print() {

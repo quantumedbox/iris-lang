@@ -9,14 +9,14 @@
   @brief  Assert with message
           Supposed to be used in release for edge cases, not just for debugging
 */
-void iris_assert(bool status, const char* msg) {
+void iris_check(bool status, const char* msg) {
   if (!status) {
     panic(msg);
   }
 }
 
 void warning(bool status, const char* msg) {
-  iris_assert(msg != NULL, "NULL passed as panic message");
+  iris_check(msg != NULL, "NULL passed as panic message");
   if (status) {
     (void)fprintf(stderr, "warning! %s\n", msg);
   }
@@ -33,7 +33,7 @@ _Noreturn void ferror_panic(FILE* file) {
 }
 
 _Noreturn void panic(const char* msg) {
-  iris_assert(msg != NULL, "NULL passed as panic message");
+  iris_check(msg != NULL, "NULL passed as panic message");
   (void)fprintf(stderr, "program panicked with message: \"%s\"\n", msg);
   exit(1);
 }

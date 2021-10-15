@@ -2,9 +2,9 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include "iris.h"
-#include "utils.h"
 #include "reader.h"
+#include "types/types.h"
+#include "utils.h"
 
 // todo: symbol parsing is bugged on such case: (test (test))
 // todo: require spaces between in-list objects
@@ -70,7 +70,7 @@ bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char
       if ((*ptr >= '0') && (*ptr <= '9')) {
         int check = result.int_variant;
         result.int_variant = result.int_variant * 10 + (*ptr - '0');
-        iris_assert(check < result.int_variant, "can't contain given value in iris integer object (overflow detected)");
+        iris_check(check < result.int_variant, "can't contain given value in iris integer object (overflow detected)");
         ptr++;
       } else {
         break;
@@ -142,7 +142,7 @@ bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* slice, 
 }
 
 IrisList nurture(IrisString str) {
-  IrisList result = new_list(); // top-most lists are part of it
+  IrisList result = list_new(); // top-most lists are part of it
   IrisList* stack[LIST_RECURSION_PARSE_LIMIT]; // points at lists that aren't finalized yet
   stack[0] = &result;
   size_t stack_pos = 0ULL;
@@ -152,19 +152,19 @@ IrisList nurture(IrisString str) {
     assert(str_pos < str.len);
     str_pos += eat_whitespace(&str.data[str_pos], &str.data[str.len]);
     if (str_pos == str.len) { break; }
-    char cur = nth_char(str, str_pos);
+    char cur = string_nth(str, str_pos);
     switch (cur) {
       case '(': {
-        IrisList list = new_list();
-        push_list(stack[stack_pos], &list);
-        iris_assert(stack_pos < LIST_RECURSION_PARSE_LIMIT, "scope stack overflow");
+        IrisList list = list_new();
+        list_push_list(stack[stack_pos], &list);
+        iris_check(stack_pos < LIST_RECURSION_PARSE_LIMIT, "scope stack overflow");
         stack[stack_pos + 1ULL] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
         stack_pos++;
         str_pos++;
         continue;
       }
       case ')': {
-        iris_assert(stack_pos > 0ULL, "attempt to close nonexistent list");
+        iris_check(stack_pos > 0ULL, "attempt to close nonexistent list");
         stack_pos--;
         str_pos++;
         continue;
@@ -172,7 +172,7 @@ IrisList nurture(IrisString str) {
       case ';': {
         do {
           str_pos++;
-          if (nth_char(str, str_pos) == '\n') {
+          if (string_nth(str, str_pos) == '\n') {
             str_pos++;
             break;
           }
@@ -184,13 +184,13 @@ IrisList nurture(IrisString str) {
         IrisObject obj_parsed;
         size_t chars_parsed;
         if (parse_int(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          push_int(stack[stack_pos], obj_parsed.int_variant);
+          list_push_int(stack[stack_pos], obj_parsed.int_variant);
           str_pos += chars_parsed;
         } else if (parse_marked_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          push_string(stack[stack_pos], &obj_parsed.string_variant);
+          list_push_string(stack[stack_pos], &obj_parsed.string_variant);
           str_pos += chars_parsed;
         } else if (parse_atomic_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          push_string(stack[stack_pos], &obj_parsed.string_variant);
+          list_push_string(stack[stack_pos], &obj_parsed.string_variant);
           str_pos += chars_parsed;
         } else {
           panic("unknown character");
@@ -198,6 +198,6 @@ IrisList nurture(IrisString str) {
       }
     }
   }
-  iris_assert(stack_pos == 0ULL, "trailing unclosed list");
+  iris_check(stack_pos == 0ULL, "trailing unclosed list");
   return result;
 }
