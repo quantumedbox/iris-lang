@@ -198,7 +198,7 @@ void dict_move(IrisDict* dict) {
   dict->cap = 0ULL;
 }
 
-void dict_print(IrisDict dict, bool newline) {
+void dict_print_repr(IrisDict dict, bool newline) {
   (void)fputc('{', stdout);
   bool put_comma = false;
   for (size_t b = 0; b < dict.cap; b++) {
@@ -210,7 +210,7 @@ void dict_print(IrisDict dict, bool newline) {
         (void)fputc(' ', stdout);
       }
       (void)fprintf(stdout, "%llu: ", dict.buckets[b].pairs[p].key);
-      object_print(dict.buckets[b].pairs[p].item, false);
+      object_print_repr(dict.buckets[b].pairs[p].item, false);
     }
   }
   (void)fputc('}', stdout);

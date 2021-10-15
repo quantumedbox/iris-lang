@@ -71,8 +71,26 @@ IrisString string_from_view(const char* low, const char* high) {
   return result;
 }
 
+IrisString string_from_file_line(FILE* file) {
+  IrisString result = {0};
+  size_t cap = 0ULL;
+
+  int ch;
+  while ((ch = getc(file)) != '\n' && ch != EOF) {
+    if (cap <= result.len) {
+      cap += STRING_PREALLOC;
+      result.data = iris_resize(result.data, cap, char);
+    }
+    result.data[result.len++] = ch;
+  }
+  if (ferror(file)) { ferror_panic(file); }
+  result.data = iris_resize(result.data, result.len, char);
+  string_hash(&result);
+  return result;
+}
+
 IrisString string_from_file(FILE* file) {
-  IrisString result = { 0 };
+  IrisString result = {0};
 
   {
     long int restore_cursor = ftell(file);
@@ -146,12 +164,12 @@ void string_move(IrisString* str) {
   str->len = 1ULL;
 }
 
-void string_print(IrisString str, bool newline) {
-  (void)fprintf(stdout, "\"%.*s\"", (int)str.len, str.data);
+void string_print_repr(IrisString str, bool newline) {
+  (void)fprintf(stdout, "%.*s", (int)str.len, str.data);
   if (newline) { (void)fputc('\n', stdout); }
 }
 
-void string_print_debug(IrisString str, bool newline) {
-  (void)fprintf(stdout, "(\"%.*s\" : len: %llu, hash: %llu)", (int)str.len, str.data, str.len, str.hash);
+void string_print_internal(IrisString str, bool newline) {
+  (void)fprintf(stdout, "<string | bytes: \"%.*s\" : len: %llu, hash: %llu)", (int)str.len, str.data, str.len, str.hash);
   if (newline) { (void)fputc('\n', stdout); }
 }

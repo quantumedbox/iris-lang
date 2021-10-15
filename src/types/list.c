@@ -125,23 +125,23 @@ void list_move(IrisList* list) {
   list->cap = 0ULL;
 }
 
-void list_print(IrisList list, bool newline) {
+void list_print_repr(IrisList list, bool newline) {
   assert(list_is_valid(list));
   (void)fputc('(', stdout);
   for (size_t i = 0ULL; i < list.len; i++) {
     if (i != 0ULL) { (void)fputc(' ', stdout); }
-    object_print(list.items[i], false);
+    object_print_repr(list.items[i], false);
   }
   (void)fputc(')', stdout);
   if (newline) { (void)fputc('\n', stdout); }
 }
 
-void list_print_debug(IrisList list, bool newline) {
+void list_print_internal(IrisList list, bool newline) {
   assert(list_is_valid(list));
   (void)fputc('(', stdout);
   for (size_t i = 0ULL; i < list.len; i++) {
     if (i != 0ULL) { (void)fputc(' ', stdout); }
-    object_print(list.items[i], false);
+    object_print_repr(list.items[i], false);
   }
   (void)fputc(')', stdout);
   if (newline) { (void)fputc('\n', stdout); }

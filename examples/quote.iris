@@ -1,0 +1,5 @@
+; quote is built-in macro that returns single parameter as it is
+(echo (quote (1 2 3 4)))
+
+; echo that is encapsulated will not be called
+(echo (quote echo))

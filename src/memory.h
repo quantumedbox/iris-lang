@@ -17,7 +17,7 @@ void* iris_standard_resize(void* mem, size_t bytes);
 void  iris_standard_free(void* mem);
 // zero alloc that uses IRIS_ALLOC
 void* iris_alloc0_untyped(size_t size);
-void iris_metrics_print();
+void iris_metrics_print_repr();
 
 #ifndef IRIS_ALLOC
   #define IRIS_ALLOC(size) iris_standard_alloc(size)

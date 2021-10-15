@@ -38,6 +38,6 @@ const struct _IrisObject* dict_get_view(const IrisDict*, size_t key);
 bool dict_is_valid(IrisDict);
 void dict_destroy(IrisDict*);
 void dict_move(IrisDict*);
-void dict_print(IrisDict, bool newline);
+void dict_print_repr(IrisDict, bool newline);
 
 #endif

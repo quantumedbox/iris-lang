@@ -36,7 +36,7 @@ const struct _IrisObject* list_view_slice(const IrisList*, size_t* resulting_sli
 
 void list_destroy(IrisList*);
 void list_move(IrisList*);
-void list_print(IrisList, bool newline);
-void list_print_debug(IrisList, bool newline);
+void list_print_repr(IrisList, bool newline);
+void list_print_internal(IrisList, bool newline);
 
 #endif

@@ -75,23 +75,23 @@ void object_destroy(IrisObject* obj) {
   }
 }
 
-void object_print(IrisObject obj, bool newline) {
+void object_print_repr(IrisObject obj, bool newline) {
   switch (obj.kind) {
     case irisObjectKindNone:
       (void)fprintf(stdout, "None");
       if (newline) { (void)fputc('\n', stdout); }
       break;
     case irisObjectKindList:
-      list_print(obj.list_variant, newline);
+      list_print_repr(obj.list_variant, newline);
       break;
     case irisObjectKindInt:
       (void)fprintf(stdout, "%d", obj.int_variant);
       break;
     case irisObjectKindString:
-      string_print(obj.string_variant, newline);
+      string_print_repr(obj.string_variant, newline);
       break;
     case irisObjectKindFunc:
-      func_print(obj.func_variant, newline);
+      func_print_repr(obj.func_variant, newline);
       break;
     default:
       panic("printing behaviour for obj type isn't defined");

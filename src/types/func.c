@@ -6,7 +6,13 @@
 
 IrisFunc func_from_cfunc(IrisFuncPrototype cfunc) {
   assert(pointer_is_valid(cfunc));
-  IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc };
+  IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc, .is_macro = false };
+  return result;
+}
+
+IrisFunc func_macro_from_cfunc(IrisFuncPrototype cfunc) {
+  assert(pointer_is_valid(cfunc));
+  IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc, .is_macro = true };
   return result;
 }
 
@@ -49,16 +55,22 @@ void func_move(IrisFunc* func) {
   // func->cfunc = NULL;
 }
 
-void func_print(IrisFunc func, bool newline) {
+void func_print_repr(IrisFunc func, bool newline) {
+  assert(func_is_valid(func));
+  (void)fprintf(stdout, "<callable>", func.cfunc);
+  if (newline) { (void)fputc('\n', stdout); }
+}
+
+void func_print_internal(IrisFunc func, bool newline) {
   assert(func_is_valid(func));
   switch (func.type) {
     case irisFuncTypeC:
-      (void)fprintf(stdout, "<cfunc: %p>", func.cfunc);
+      (void)fprintf(stdout, "<callable | cfunc: %p>", func.cfunc);
       if (newline) { (void)fputc('\n', stdout); }
       break;
     case irisFuncTypeList:
-      (void)fprintf(stdout, "<listfunc: ");
-      list_print(func.codedata, false);
+      (void)fprintf(stdout, "<callable | codedata: ");
+      list_print_repr(func.codedata, false);
       (void)fputc('>', stdout);
       if (newline) { (void)fputc('\n', stdout); }
       break;

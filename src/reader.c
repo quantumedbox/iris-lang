@@ -98,7 +98,7 @@ bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* slice, 
   assert(parsed != NULL);
   const char* ptr = slice;
   IrisObject result = { .kind = irisObjectKindString };
-  while (limit >= ptr) {
+  while (limit > ptr) {
     if (!is_reserved_char(*ptr) && !is_whitespace(*ptr)) {
       ptr++;
     } else {
@@ -128,7 +128,7 @@ bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* slice, 
   if (*ptr == '\"') {
     IrisObject result = { .kind = irisObjectKindString };
     ptr++;
-    while (limit >= ptr) {
+    while (limit > ptr) {
       if (*ptr != '\"') {
         ptr++;
       } else {

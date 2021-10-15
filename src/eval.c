@@ -3,30 +3,47 @@
 //       encapsulated as much as possible
 //       for that we could probably use some kind of error object that is catched by caller afterwards
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
 
 #include "eval.h"
 #include "types/types.h"
+#include "reader.h"
 #include "utils.h"
 
 #define IRIS_ARGUMENT_STACK_LIMIT 64
+
+void enter_repl() {
+  IrisDict scope = scope_default();
+  (void)fprintf(stdout, "you're in iris repl mode // ctrl + z to exit\n");
+  while (true) {
+    (void)fprintf(stdout, ">>> ");
+    IrisString line = string_from_file_line(stdin);
+    // string_print_repr(line, true);
+    IrisList sprout = nurture(line);
+    eval(&sprout, &scope, true);
+    string_destroy(&line);
+    list_destroy(&sprout);
+  }
+  dict_destroy(&scope);
+}
 
 /*
   @brief      Yields passed argument as it is, required for escaping evaluation
   @variants   (1: any)
 */
-IrisObject quote(const IrisObject* args, size_t arg_count) {
-  if (arg_count != 0ULL) {
+static IrisObject quote(const IrisObject* args, size_t arg_count) {
+  if (arg_count != 1ULL) {
     panic("invalid argument count for quote"); // should it not hard crush, but return error result?
   }
-  return (IrisObject){0}; // None
+  return args[0]; // None
 }
 
-IrisObject echo(const IrisObject* args, size_t arg_count) {
+static IrisObject echo(const IrisObject* args, size_t arg_count) {
   for (size_t i = 0ULL; i < arg_count; i++) {
     if (i != 0ULL) { (void)fputc(' ', stdout); }
-    object_print(args[i], false); // todo: object_repr?
+    object_print_repr(args[i], false); // todo: object_repr?
   }
   (void)fputc('\n', stdout);
   return (IrisObject){0}; // None
@@ -34,16 +51,23 @@ IrisObject echo(const IrisObject* args, size_t arg_count) {
 
 // todo: should be initialized once and then shared by const pointer
 IrisDict scope_default() {
-  #define macro_push_to_scope(m_cfunc, m_symbol) {  \
-  IrisFunc func = func_from_cfunc(m_cfunc);         \
-  IrisString symbol = string_from_chars(m_symbol);  \
-  dict_push_func(&result, &symbol, &func);          \
+  #define scope_default_push_func_to_scope(m_cfunc, m_symbol) {  \
+    IrisFunc func = func_from_cfunc(m_cfunc);                    \
+    IrisString symbol = string_from_chars(m_symbol);             \
+    dict_push_func(&result, &symbol, &func);                     \
+  }
+  #define scope_default_push_macro_to_scope(m_cfunc, m_symbol) { \
+    IrisFunc func = func_macro_from_cfunc(m_cfunc);              \
+    IrisString symbol = string_from_chars(m_symbol);             \
+    dict_push_func(&result, &symbol, &func);                     \
   }
 
   IrisDict result = dict_new();
-  macro_push_to_scope(echo, "echo");
+  scope_default_push_func_to_scope(echo, "echo");
+  scope_default_push_macro_to_scope(quote, "quote");
   return result;
-  #undef macro_push_to_scope
+  #undef scope_default_push_func_to_scope
+  #undef scope_default_push_macro_to_scope
 }
 
 // todo: define ways of scope modification
@@ -66,11 +90,20 @@ IrisObject eval_object(IrisObject obj, const IrisDict* scope) {
             //       we could create our own stack in heap specifically for building calls
             IrisObject argument_stack[IRIS_ARGUMENT_STACK_LIMIT];
             size_t argument_stack_len = 0ULL;
-            for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
+            if (!supposedly_callable->func_variant.is_macro) {
               // collect function parameters by evaluating everything else that is in list
-              assert(object_is_valid(obj.list_variant.items[i]));
-              argument_stack[i - 1ULL] = eval_object(obj.list_variant.items[i], scope);
-              argument_stack_len++;
+              for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
+                assert(object_is_valid(obj.list_variant.items[i]));
+                argument_stack[i - 1ULL] = eval_object(obj.list_variant.items[i], scope);
+                argument_stack_len++;
+              }
+            } else {
+              // collect function parameters without evaluation
+              for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
+                assert(object_is_valid(obj.list_variant.items[i]));
+                argument_stack[i - 1ULL] = obj.list_variant.items[i];
+                argument_stack_len++;
+              }
             }
             // todo: check on errors from callee
             return func_call(supposedly_callable->func_variant, argument_stack, argument_stack_len);
@@ -96,7 +129,7 @@ void eval(const IrisList* list, const IrisDict* scope, bool in_repl) {
   for (size_t i = 0ULL; i < list->len; i++) {
     IrisObject result = eval_object(list->items[i], scope);
     if (in_repl == true) {
-      object_print(result, true);
+      object_print_repr(result, true);
     }
   }
 }

@@ -61,6 +61,6 @@ void object_destroy(struct _IrisObject* obj);
 void object_move(struct _IrisObject*);
 bool object_is_valid(struct _IrisObject);
 size_t object_hash(struct _IrisObject);
-void object_print(struct _IrisObject, bool newline);
+void object_print_repr(struct _IrisObject, bool newline);
 
 #endif

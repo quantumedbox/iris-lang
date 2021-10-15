@@ -75,7 +75,7 @@ void* iris_alloc0_untyped(size_t bytes) {
   return mem;
 }
 
-void iris_metrics_print() {
+void iris_metrics_print_repr() {
   #ifdef IRIS_COLLECT_MEMORY_METRICS
   (void)fprintf(stdout, "%s\n", "-- memory metrics:");
   (void)fprintf(stdout, "allocations: %u\n", n_allocations);
