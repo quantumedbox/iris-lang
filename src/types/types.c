@@ -15,46 +15,25 @@
 
 void object_move(IrisObject* obj) {
   switch (obj->kind) {
-    case okInt: break;
-    case okString:
+    case irisObjectKindInt: break;
+    case irisObjectKindString:
       string_move(&obj->string_variant);
       break;
-    case okList:
+    case irisObjectKindList:
       list_move(&obj->list_variant);
       break;
-    case okDict:
+    case irisObjectKindDict:
       dict_move(&obj->dict_variant);
     default:
       panic("move behavior for object variant isn't defined");
   }
 }
 
-/*
-  @brief  Could be problematic and in general isn't preferable way of doing shit
-          But in some places it's more convenient to do shit this way
-          Probably will be changed in the future
-*/
-// void object_move_dark_magic(ObjectKind kind, void* variant) {
-//   switch (kind) {
-//     case okInt: break;
-//     case okString:
-//       string_move((IrisString*)variant);
-//       break;
-//     case okList:
-//       list_move((IrisList*)variant);
-//       break;
-//     case okDict:
-//       dict_move((IrisDict*)variant);
-//     default:
-//       panic("dark magic move behavior for object variant isn't defined");
-//   }
-// }
-
 size_t object_hash(IrisObject obj) {
   switch (obj.kind) {
-    case okInt:
+    case irisObjectKindInt:
       return obj.int_variant;
-    case okString:
+    case irisObjectKindString:
       return obj.string_variant.hash;
     default:
       panic("hash behavior for object variant isn't defined");
@@ -63,10 +42,14 @@ size_t object_hash(IrisObject obj) {
 
 bool object_is_valid(IrisObject obj) {
   switch (obj.kind) {
-    case okInt:
+    case irisObjectKindNone:
       return true;
-    case okString:
+    case irisObjectKindInt:
+      return true;
+    case irisObjectKindString:
       return string_is_valid(obj.string_variant);
+    case irisObjectKindList:
+      return list_is_valid(obj.list_variant);
     default:
       panic("validity check for object variant isn't defined");
   }
@@ -74,35 +57,43 @@ bool object_is_valid(IrisObject obj) {
 
 void object_destroy(IrisObject* obj) {
   switch (obj->kind) {
-    case okNone:
+    case irisObjectKindNone:
       panic("attempt to destroy None object");
       break;
-    case okInt: break;
-    case okString:
+    case irisObjectKindInt: break;
+    case irisObjectKindString:
       string_destroy(&obj->string_variant);
       break;
-    case okList:
+    case irisObjectKindList:
       list_destroy(&obj->list_variant);
+      break;
+    case irisObjectKindFunc:
+      func_destroy(&obj->func_variant);
       break;
     default:
       panic("destroy behavior for object variant isn't defined");
   }
 }
 
-void object_print(IrisObject obj) {
+void object_print(IrisObject obj, bool newline) {
   switch (obj.kind) {
-    case okNone:
-      (void)fprintf(stdout, "None!");
+    case irisObjectKindNone:
+      (void)fprintf(stdout, "None");
+      if (newline) { (void)fputc('\n', stdout); }
       break;
-    case okList:
-      list_print(obj.list_variant, false);
+    case irisObjectKindList:
+      list_print(obj.list_variant, newline);
       break;
-    case okInt:
+    case irisObjectKindInt:
       (void)fprintf(stdout, "%d", obj.int_variant);
       break;
-    case okString:
-      string_print(obj.string_variant, false);
+    case irisObjectKindString:
+      string_print(obj.string_variant, newline);
       break;
-    default: panic("printing behaviour for obj type isn't defined");
+    case irisObjectKindFunc:
+      func_print(obj.func_variant, newline);
+      break;
+    default:
+      panic("printing behaviour for obj type isn't defined");
   }
 }

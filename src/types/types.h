@@ -16,33 +16,37 @@ struct _IrisObject;
 struct _IrisString;
 struct _IrisList;
 struct _IrisDict;
+struct _IrisFunc;
 
 #include "types/list.h"
 #include "types/string.h"
 #include "types/dict.h"
+#include "types/func.h"
+
+typedef enum {
+  irisObjectKindNone,
+  irisObjectKindInt,
+  irisObjectKindString,
+  irisObjectKindList,
+  irisObjectKindDict,
+  // okRefCell,
+  // okError,
+  irisObjectKindFunc,
+  N_OBJECT_KINDS
+} IrisObjectKind;
 
 typedef struct _IrisObject {
   // polymorphic container, mostly used for representing code as data
   // homogeneous containers should be proffered
-  int kind;
+  IrisObjectKind kind;
   union {
     int         int_variant;
     IrisString  string_variant;
     IrisList    list_variant;
     IrisDict    dict_variant;
+    IrisFunc    func_variant;
   };
 } IrisObject;
-
-typedef enum {
-  okNone,
-  okInt,
-  okSymbol,
-  okString,
-  okList,
-  okDict,
-  okRefCell,
-  N_OBJECT_KINDS
-} ObjectKind;
 
 // todo:
 // typedef struct {
@@ -55,9 +59,8 @@ typedef enum {
 
 void object_destroy(struct _IrisObject* obj);
 void object_move(struct _IrisObject*);
-// void object_move_dark_magic(ObjectKind kind, void* variant);
 bool object_is_valid(struct _IrisObject);
 size_t object_hash(struct _IrisObject);
-void object_print(struct _IrisObject);
+void object_print(struct _IrisObject, bool newline);
 
 #endif

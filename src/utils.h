@@ -3,12 +3,13 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdnoreturn.h>
 
 void iris_check(bool, const char*);
-void warning(bool, const char*);
+void iris_check_warn(bool, const char*);
 
-_Noreturn void errno_panic();
-_Noreturn void ferror_panic(FILE*);
-_Noreturn void panic(const char*);
+noreturn void errno_panic();
+noreturn void ferror_panic(FILE*);
+noreturn void panic(const char*);
 
 #endif

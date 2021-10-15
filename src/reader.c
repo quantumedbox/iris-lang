@@ -6,8 +6,10 @@
 #include "types/types.h"
 #include "utils.h"
 
-// todo: symbol parsing is bugged on such case: (test (test))
 // todo: require spaces between in-list objects
+// todo: quoted symbols
+// todo: store symbols in global string pool
+//       there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
 
 #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough
 
@@ -64,7 +66,7 @@ bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char
   assert(parsed != NULL);
   const char* ptr = slice;
   if ((*ptr >= '1') && (*ptr <= '9')) {
-    IrisObject result = { .kind = okInt, .int_variant = (*ptr - '0') };
+    IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
     ptr++;
     while (limit >= ptr) {
       if ((*ptr >= '0') && (*ptr <= '9')) {
@@ -95,7 +97,7 @@ bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* slice, 
   assert(target != NULL);
   assert(parsed != NULL);
   const char* ptr = slice;
-  IrisObject result = { .kind = okString };
+  IrisObject result = { .kind = irisObjectKindString };
   while (limit >= ptr) {
     if (!is_reserved_char(*ptr) && !is_whitespace(*ptr)) {
       ptr++;
@@ -124,7 +126,7 @@ bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* slice, 
   assert(parsed != NULL);
   const char* ptr = slice;
   if (*ptr == '\"') {
-    IrisObject result = { .kind = okString };
+    IrisObject result = { .kind = irisObjectKindString };
     ptr++;
     while (limit >= ptr) {
       if (*ptr != '\"') {

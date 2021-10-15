@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "types/dict.h"
+// #include "types/dict.h"
+#include "types/types.h"
 #include "utils.h"
 #include "memory.h"
 
@@ -23,7 +24,6 @@ typedef struct _IrisDictBucket {
   size_t len;
 } IrisDictBucket;
 
-
 IrisDict dict_new() {
   IrisDict result = {
     .buckets = iris_alloc0(DICT_PREALLOC, IrisDictBucket),
@@ -35,13 +35,15 @@ IrisDict dict_new() {
 
 // todo: we shouldn't have two versions of funcs, they make maintaining harder
 __forceinline void dict_free_buckets(IrisDictBucket* buckets, size_t len) {
-  assert(is_pointer_valid(buckets));
+  assert(pointer_is_valid(buckets));
   for (size_t b = 0ULL; b < len; b++) {
+    assert((buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) ||
+      (buckets[b].len == 0 && !pointer_is_valid(buckets[b].pairs))
+    );
     for (size_t p = 0ULL; p < buckets[b].len; p++) {
-      assert(buckets[b].pairs != NULL);
       object_destroy(&buckets[b].pairs[p].item);
     }
-    if (buckets[b].pairs != NULL) {
+    if (buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) {
       iris_free(buckets[b].pairs);
     }
   }
@@ -52,21 +54,22 @@ __forceinline void dict_free_buckets(IrisDictBucket* buckets, size_t len) {
   @brief  dict_free_buckets version that assumes that pairs were moved and shouldn't be freed
 */
 __forceinline void dict_free_buckets_after_move(IrisDictBucket* buckets, size_t len) {
-  assert(is_pointer_valid(buckets));
+  assert(pointer_is_valid(buckets));
   for (size_t b = 0ULL; b < len; b++) {
-    assert((buckets[b].len > 0 && buckets[b].pairs != NULL) ||
-      (buckets[b].len == 0 && buckets[b].pairs == NULL)
+    assert((buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) ||
+      (buckets[b].len == 0 && !pointer_is_valid(buckets[b].pairs))
     );
-    if (buckets[b].len > 0 && buckets[b].pairs != NULL) {
+    if (buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) {
       iris_free(buckets[b].pairs);
     }
   }
   iris_free(buckets);
 }
 
-__forceinline void dict_move_pair(IrisDictBucket* buckets,
-                                  size_t len,
-                                  IrisDictPair pair)
+__forceinline void
+dict_move_pair(IrisDictBucket* buckets,
+               size_t len,
+               IrisDictPair pair)
 {
   size_t idx = pair.key % len;
   buckets[idx].pairs = iris_resize(buckets[idx].pairs, buckets[idx].len + 1ULL, IrisDictPair);
@@ -120,7 +123,7 @@ __forceinline void dict_grow(IrisDict* dict) {
 
 void dict_push_object(IrisDict* dict, size_t key, IrisObject* obj) {
   switch (obj->kind) {
-    case okString:
+    case irisObjectKindString:
       dict_push_string(dict, &obj->string_variant);
       break;
     default:
@@ -130,8 +133,32 @@ void dict_push_object(IrisDict* dict, size_t key, IrisObject* obj) {
 
 void dict_push_string(IrisDict* dict, IrisString* str) {
   assert(string_is_valid(*str));
-  dict_push(dict, str->hash, (void*)str, IrisString, string, okString);
+  dict_push(dict, str->hash, (void*)str, IrisString, string, irisObjectKindString);
   string_move(str);
+}
+
+void dict_push_func(IrisDict* dict, struct _IrisString* symbol, struct _IrisFunc* func) {
+  assert(func_is_valid(*func));
+  assert(string_is_valid(*symbol));
+  dict_push(dict, symbol->hash, (void*)func, IrisFunc, func, irisObjectKindFunc);
+  func_move(func);
+  string_destroy(symbol);
+}
+
+// todo: should it resize the memory block?
+//       it should be okay that bucket forgets its capacity, as it will not attempt to use junk
+//       but memory will be freed only on next insertion in the same bucket which is quite random
+//       we could probably introduce some switch IRIS_KEEP_MINIMUM_RAM_USAGE for always shrinking memory to minimum
+void dict_erase_by_key(IrisDict* dict, size_t key) {
+  iris_check(dict_has(*dict, key), "attempt to erase nonexistent key in dict"); // todo: could be inlined into the end of for
+  size_t idx = key % dict->cap;
+  for (size_t i = 0; i < dict->buckets[idx].len; i++) {
+    if (dict->buckets[idx].pairs[i].key == key) {
+      object_destroy(&dict->buckets[idx].pairs[i].item);
+      dict->buckets[idx].pairs[i].item = dict->buckets[idx].pairs[dict->buckets[idx].len - 1ULL].item;
+      dict->buckets[idx].len--;
+    }
+  }
 }
 
 bool dict_has(IrisDict dict, size_t key) {
@@ -144,8 +171,23 @@ bool dict_has(IrisDict dict, size_t key) {
   return false;
 }
 
+const IrisObject* dict_get_view(const IrisDict* dict, size_t key) {
+  iris_check(dict_has(*dict, key), "attempt to get view of nonexistent key in dict"); // todo: could be inlined into the end of for
+  size_t idx = key % dict->cap;
+  for (size_t i = 0; i < dict->buckets[idx].len; i++) {
+    if (dict->buckets[idx].pairs[i].key == key) {
+      return &dict->buckets[idx].pairs[i].item;
+    }
+  }
+}
+
+// todo: maybe it should check how well each bucket is formed too 
+bool dict_is_valid(IrisDict dict) {
+  return pointer_is_valid(dict.buckets);
+}
+
 void dict_destroy(IrisDict* dict) {
-  assert(is_pointer_valid(dict));
+  assert(pointer_is_valid(dict));
   dict_free_buckets(dict->buckets, dict->cap);
   dict_move(dict);
 }
@@ -157,20 +199,20 @@ void dict_move(IrisDict* dict) {
 }
 
 void dict_print(IrisDict dict, bool newline) {
-  fputc('{', stdout);
+  (void)fputc('{', stdout);
   bool put_comma = false;
   for (size_t b = 0; b < dict.cap; b++) {
     for (size_t p = 0; p < dict.buckets[b].len; p++) {
       if (!put_comma) {
         put_comma = true;
       } else {
-        fputc(',', stdout);
-        fputc(' ', stdout);
+        (void)fputc(',', stdout);
+        (void)fputc(' ', stdout);
       }
       (void)fprintf(stdout, "%llu: ", dict.buckets[b].pairs[p].key);
-      object_print(dict.buckets[b].pairs[p].item);
+      object_print(dict.buckets[b].pairs[p].item, false);
     }
   }
-  fputc('}', stdout);
-  if (newline) { fputc('\n', stdout); }
+  (void)fputc('}', stdout);
+  if (newline) { (void)fputc('\n', stdout); }
 }

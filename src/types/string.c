@@ -10,7 +10,8 @@
 
 // todo: should they be cached on creation or only on first hash request?
 
-#include "types/string.h"
+#include "types/types.h"
+// #include "types/string.h"
 #include "memory.h"
 #include "utils.h"
 
@@ -18,8 +19,8 @@
 static_assert(STRING_PREALLOC > 0U, "string preallocation shouldn't be 0");
 
 bool string_is_valid(IrisString str) {
-  return ((str.len == 0ULL && !is_pointer_valid(str.data)) ||
-    (str.len > 0ULL && is_pointer_valid(str.data)));
+  return ((str.len == 0ULL && !pointer_is_valid(str.data)) ||
+    (str.len > 0ULL && pointer_is_valid(str.data)));
 }
 
 bool string_is_empty(IrisString str) {
@@ -33,7 +34,7 @@ bool string_is_empty(IrisString str) {
           main problem is that it's extremely likely to have collisions with integers
 */
 void string_hash(IrisString* str) {
-  assert(is_pointer_valid(str));
+  assert(pointer_is_valid(str));
   assert(string_is_valid(*str));
   size_t hash = 5381ULL;
   for (size_t i = 0; i < str->len; i++) {
@@ -43,7 +44,7 @@ void string_hash(IrisString* str) {
 }
 
 IrisString string_from_chars(const char* chars) {
-  // assert(is_pointer_valid(chars));
+  // assert(pointer_is_valid(chars));
   size_t len = strlen(chars);
   IrisString result = {
     .data = iris_alloc(len, char),
@@ -57,8 +58,8 @@ IrisString string_from_chars(const char* chars) {
 }
 
 IrisString string_from_view(const char* low, const char* high) {
-  assert(is_pointer_valid(low));
-  assert(is_pointer_valid(high));
+  assert(pointer_is_valid(low));
+  assert(pointer_is_valid(high));
   assert(low <= high);
   size_t len = (size_t)(((ptrdiff_t)high - (ptrdiff_t)low) / sizeof(char));
   IrisString result = {
@@ -147,10 +148,10 @@ void string_move(IrisString* str) {
 
 void string_print(IrisString str, bool newline) {
   (void)fprintf(stdout, "\"%.*s\"", (int)str.len, str.data);
-  if (newline) { fputc('\n', stdout); }
+  if (newline) { (void)fputc('\n', stdout); }
 }
 
 void string_print_debug(IrisString str, bool newline) {
   (void)fprintf(stdout, "(\"%.*s\" : len: %llu, hash: %llu)", (int)str.len, str.data, str.len, str.hash);
-  if (newline) { fputc('\n', stdout); }
+  if (newline) { (void)fputc('\n', stdout); }
 }

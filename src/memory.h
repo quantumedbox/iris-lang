@@ -9,7 +9,7 @@ typedef enum {
   irisPtrInTextSection,   // given pointer intersects with text section of binary
 } IrisPointerStatus;
 
-bool is_pointer_valid(const void* p);
+bool pointer_is_valid(const void* p);
 IrisPointerStatus pointer_status(const void* p);
 
 void* iris_standard_alloc(size_t bytes);
