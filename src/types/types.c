@@ -56,15 +56,21 @@ bool object_is_valid(const IrisObject obj) {
       return string_is_valid(obj.string_variant);
     case irisObjectKindList:
       return list_is_valid(obj.list_variant);
+    case irisObjectKindError:
+      return error_is_valid(obj.error_variant);
     default:
       panic("validity check for object variant isn't defined");
   }
 }
 
+bool object_is_none(const IrisObject obj) {
+  return obj.kind == irisObjectKindNone;
+}
+
 void object_destroy(IrisObject* obj) {
   switch (obj->kind) {
     case irisObjectKindNone:
-      panic("attempt to destroy None");
+      // panic("attempt to destroy None"); // todo: should it just silently escape?
       break;
     case irisObjectKindInt: break;
     case irisObjectKindFloat: break;
@@ -76,6 +82,9 @@ void object_destroy(IrisObject* obj) {
       break;
     case irisObjectKindFunc:
       func_destroy(&obj->func_variant);
+      break;
+    case irisObjectKindError:
+      error_destroy(&obj->error_variant);
       break;
     default:
       panic("destroy behavior for object variant isn't defined");
@@ -107,6 +116,9 @@ void object_print_repr(const IrisObject obj, bool newline) {
       break;
     case irisObjectKindFunc:
       func_print_repr(obj.func_variant, newline);
+      break;
+    case irisObjectKindError:
+      error_print_repr(obj.error_variant, newline);
       break;
     default:
       panic("printing behaviour for obj type isn't defined");

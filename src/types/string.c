@@ -13,6 +13,8 @@
 
 // todo: should they be cached on creation or only on first hash request?
 
+// todo: implementation of 0 length strings is awful, should redo it
+
 #include "types/types.h"
 // #include "types/string.h"
 #include "memory.h"

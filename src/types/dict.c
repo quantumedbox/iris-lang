@@ -177,6 +177,7 @@ bool dict_has(const IrisDict dict, size_t key) {
   return false;
 }
 
+// todo: pass dict by value?
 const IrisObject* dict_get_view(const IrisDict* dict, size_t key) {
   iris_check(dict_has(*dict, key), "attempt to get view of nonexistent key in dict"); // todo: could be inlined into the end of for
   size_t idx = key % dict->cap;

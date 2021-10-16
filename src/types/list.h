@@ -15,8 +15,6 @@ typedef struct _IrisList {
   size_t cap;
 } IrisList;
 
-// #include "types/types.h"
-
 IrisList list_new(void);
 void list_push_object(IrisList*, struct _IrisObject*);
 void list_push_int(IrisList*, int);

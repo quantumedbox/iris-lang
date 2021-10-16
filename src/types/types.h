@@ -27,13 +27,13 @@ struct _IrisError;
 
 typedef enum {
   irisObjectKindNone,
+  irisObjectKindError,
+  irisObjectKindFunc,
   irisObjectKindInt,
   irisObjectKindFloat,
   irisObjectKindString,
   irisObjectKindList,
   irisObjectKindDict,
-  irisObjectKindError,
-  irisObjectKindFunc,
   N_OBJECT_KINDS
 } IrisObjectKind;
 
@@ -61,9 +61,10 @@ typedef struct _IrisObject {
 //   size_t identity;
 // } IrisRefCell;
 
-void object_destroy(struct _IrisObject* obj);
+void object_destroy(struct _IrisObject*);
 void object_move(struct _IrisObject*);
 bool object_is_valid(const struct _IrisObject);
+bool object_is_none(const struct _IrisObject);
 size_t object_hash(const struct _IrisObject);
 void object_print_repr(const struct _IrisObject, bool newline);
 

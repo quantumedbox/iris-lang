@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-// #include "types/list.h"
-
 /*
   @brief  Signature by which runtime evaluation funcs are hooked
           args does usually point in memory or some IrisList object
@@ -27,10 +25,10 @@ typedef enum {
 */
 typedef struct _IrisFunc {
   IrisFuncType type;
-  bool is_macro; // todo: could be embedded in type field, but will make things messy
+  bool is_macro;                // todo: could be embedded in type field, but will make things messy
   union {
     IrisFuncPrototype cfunc;
-    struct _IrisList codedata;
+    struct _IrisList codedata;  // todo
   };
   struct _IrisString docstring; // todo
 } IrisFunc;

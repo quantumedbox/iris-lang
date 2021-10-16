@@ -16,7 +16,7 @@ void enter_repl(void);
 */
 void eval(const IrisList*, const IrisDict* scope, bool in_repl);
 
-IrisObject eval_object(IrisObject, const IrisDict* scope);
+IrisObject eval_object(const IrisObject, const IrisDict* scope);
 
 /*
   @brief Get default scope for evaluation

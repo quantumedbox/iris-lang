@@ -10,9 +10,11 @@
 // todo: store symbols in global string pool
 //       there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
 // todo: floats
-// todo: 'quote lists
+// todo: 'quote lists and other objects
+// todo: remake it in using uint32 as characters for unicode
+//       for that there should be some utility for decoding utf-8, preferably lazily
 
-#define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough
+#define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough, but might be problematic in the future
 
 __forceinline bool is_whitespace(char ch) {
   switch (ch) {
@@ -151,7 +153,7 @@ IrisList nurture(IrisString str) {
   stack[0] = &result;
   size_t stack_pos = 0ULL;
   size_t str_pos = 0ULL;
-  // bool parse_next_as_quote = false;
+  bool parse_next_as_quote = false;
 
   while (str_pos != str.len) {
     assert(str_pos < str.len);
@@ -160,10 +162,20 @@ IrisList nurture(IrisString str) {
     char cur = string_nth(str, str_pos);
     switch (cur) {
       case '(': {
-        IrisList list = list_new();
-        list_push_list(stack[stack_pos], &list);
         iris_check(stack_pos < LIST_RECURSION_PARSE_LIMIT, "scope stack overflow");
-        stack[stack_pos + 1ULL] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
+        IrisList list = list_new();
+        if (parse_next_as_quote) {
+          parse_next_as_quote = false;
+          IrisList quote_list = list_new();
+          IrisString quote_sym = string_from_chars("quote");
+          list_push_string(&quote_list, &quote_sym);
+          list_push_list(&quote_list, &list);
+          list_push_list(stack[stack_pos], &quote_list);
+          stack[stack_pos + 1ULL] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant.items[1].list_variant); // kinda even more fucked up
+        } else {
+          list_push_list(stack[stack_pos], &list);
+          stack[stack_pos + 1ULL] = &(stack[stack_pos]->items[stack[stack_pos]->len - 1].list_variant); // kinda fucked up
+        }
         stack_pos++;
         str_pos++;
         continue;
@@ -174,11 +186,11 @@ IrisList nurture(IrisString str) {
         str_pos++;
         continue;
       }
-      // case '\'': {
-      //   parse_next_as_quote = true;
-      //   str_pos++;
-      //   continue;
-      // }
+      case '\'': {
+        parse_next_as_quote = true;
+        str_pos++;
+        continue;
+      }
       case ';': {
         while (true) {
           str_pos++;
