@@ -20,12 +20,12 @@ typedef struct _IrisDict {
 
 // #include "types/types.h"
 
-IrisDict dict_new();
+IrisDict dict_new(void);
 void dict_push_object(IrisDict*, size_t key, struct _IrisObject*);
 void dict_push_string(IrisDict*, struct _IrisString*);
 void dict_push_func(IrisDict*, struct _IrisString*, struct _IrisFunc*);
 void dict_erase_by_key(IrisDict*, size_t key);
-bool dict_has(IrisDict, size_t key);
+bool dict_has(const IrisDict, size_t key);
 
 /*
   @brief  Get reference to object in dictionary
@@ -35,9 +35,9 @@ bool dict_has(IrisDict, size_t key);
 */
 const struct _IrisObject* dict_get_view(const IrisDict*, size_t key);
 
-bool dict_is_valid(IrisDict);
+bool dict_is_valid(const IrisDict);
 void dict_destroy(IrisDict*);
 void dict_move(IrisDict*);
-void dict_print_repr(IrisDict, bool newline);
+void dict_print_repr(const IrisDict, bool newline);
 
 #endif

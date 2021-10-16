@@ -167,7 +167,7 @@ void dict_erase_by_key(IrisDict* dict, size_t key) {
   }
 }
 
-bool dict_has(IrisDict dict, size_t key) {
+bool dict_has(const IrisDict dict, size_t key) {
   size_t idx = key % dict.cap;
   for (size_t i = 0; i < dict.buckets[idx].len; i++) {
     if (dict.buckets[idx].pairs[i].key == key) {
@@ -189,7 +189,7 @@ const IrisObject* dict_get_view(const IrisDict* dict, size_t key) {
 }
 
 // todo: maybe it should check how well each bucket is formed too 
-bool dict_is_valid(IrisDict dict) {
+bool dict_is_valid(const IrisDict dict) {
   return pointer_is_valid(dict.buckets);
 }
 
@@ -205,7 +205,7 @@ void dict_move(IrisDict* dict) {
   dict->cap = 0ULL;
 }
 
-void dict_print_repr(IrisDict dict, bool newline) {
+void dict_print_repr(const IrisDict dict, bool newline) {
   (void)fputc('{', stdout);
   bool put_comma = false;
   for (size_t b = 0; b < dict.cap; b++) {
@@ -213,8 +213,7 @@ void dict_print_repr(IrisDict dict, bool newline) {
       if (!put_comma) {
         put_comma = true;
       } else {
-        (void)fputc(',', stdout);
-        (void)fputc(' ', stdout);
+        (void)fputs(", ", stdout);
       }
       (void)fprintf(stdout, "%llu: ", dict.buckets[b].pairs[p].key);
       object_print_repr(dict.buckets[b].pairs[p].item, false);
@@ -222,4 +221,5 @@ void dict_print_repr(IrisDict dict, bool newline) {
   }
   (void)fputc('}', stdout);
   if (newline) { (void)fputc('\n', stdout); }
+  fflush(stdout);
 }

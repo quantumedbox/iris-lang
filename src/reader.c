@@ -7,9 +7,10 @@
 #include "utils.h"
 
 // todo: require spaces between in-list objects
-// todo: quoted symbols
 // todo: store symbols in global string pool
 //       there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
+// todo: floats
+// todo: 'quote lists
 
 #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough
 
@@ -31,6 +32,7 @@ __forceinline bool is_reserved_char(char ch) {
     case '\"': return true;
     case '(': return true;
     case ')': return true;
+    case ';': return true;
     default:   return false;
   }
 }
@@ -149,6 +151,7 @@ IrisList nurture(IrisString str) {
   stack[0] = &result;
   size_t stack_pos = 0ULL;
   size_t str_pos = 0ULL;
+  // bool parse_next_as_quote = false;
 
   while (str_pos != str.len) {
     assert(str_pos < str.len);
@@ -171,6 +174,11 @@ IrisList nurture(IrisString str) {
         str_pos++;
         continue;
       }
+      // case '\'': {
+      //   parse_next_as_quote = true;
+      //   str_pos++;
+      //   continue;
+      // }
       case ';': {
         while (true) {
           str_pos++;

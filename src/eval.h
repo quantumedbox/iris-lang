@@ -3,8 +3,11 @@
 
 #include "types/types.h"
 
-// todo:
-void enter_repl();
+void init_eval(void);
+
+const IrisDict* get_standard_scope_view(void);
+
+void enter_repl(void);
 
 /*
   @brief  Evaluate list of object as it's composed from valid code
@@ -13,9 +16,11 @@ void enter_repl();
 */
 void eval(const IrisList*, const IrisDict* scope, bool in_repl);
 
+IrisObject eval_object(IrisObject, const IrisDict* scope);
+
 /*
   @brief Get default scope for evaluation
 */
-IrisDict scope_default();
+IrisDict scope_default(void);
 
 #endif

@@ -17,14 +17,14 @@ typedef struct _IrisList {
 
 // #include "types/types.h"
 
-IrisList list_new();
+IrisList list_new(void);
 void list_push_object(IrisList*, struct _IrisObject*);
 void list_push_int(IrisList*, int);
 void list_push_string(IrisList*, struct _IrisString*);
 void list_push_list(IrisList*, IrisList*);
-bool list_is_valid(IrisList);
-size_t list_card(IrisList);
-bool list_is_valid(IrisList);
+bool list_is_valid(const IrisList);
+size_t list_card(const IrisList);
+bool list_is_valid(const IrisList);
 
 /*
   @brief  Get pointer to internal IrisObject sequence
@@ -36,7 +36,7 @@ const struct _IrisObject* list_view_slice(const IrisList*, size_t* resulting_sli
 
 void list_destroy(IrisList*);
 void list_move(IrisList*);
-void list_print_repr(IrisList, bool newline);
-void list_print_internal(IrisList, bool newline);
+void list_print_repr(const IrisList, bool newline);
+void list_print_internal(const IrisList, bool newline);
 
 #endif

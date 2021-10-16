@@ -17,20 +17,22 @@ struct _IrisString;
 struct _IrisList;
 struct _IrisDict;
 struct _IrisFunc;
+struct _IrisError;
 
 #include "types/list.h"
 #include "types/string.h"
 #include "types/dict.h"
 #include "types/func.h"
+#include "types/error.h"
 
 typedef enum {
   irisObjectKindNone,
   irisObjectKindInt,
+  irisObjectKindFloat,
   irisObjectKindString,
   irisObjectKindList,
   irisObjectKindDict,
-  // okRefCell,
-  // okError,
+  irisObjectKindError,
   irisObjectKindFunc,
   N_OBJECT_KINDS
 } IrisObjectKind;
@@ -41,10 +43,12 @@ typedef struct _IrisObject {
   IrisObjectKind kind;
   union {
     int         int_variant;
+    float       float_variant;
     IrisString  string_variant;
     IrisList    list_variant;
     IrisDict    dict_variant;
     IrisFunc    func_variant;
+    IrisError   error_variant;
   };
 } IrisObject;
 
@@ -59,8 +63,8 @@ typedef struct _IrisObject {
 
 void object_destroy(struct _IrisObject* obj);
 void object_move(struct _IrisObject*);
-bool object_is_valid(struct _IrisObject);
-size_t object_hash(struct _IrisObject);
-void object_print_repr(struct _IrisObject, bool newline);
+bool object_is_valid(const struct _IrisObject);
+size_t object_hash(const struct _IrisObject);
+void object_print_repr(const struct _IrisObject, bool newline);
 
 #endif

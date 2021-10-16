@@ -5,6 +5,7 @@
 #include "eval.h"
 
 int main(int argc, const char** argv) {
+  init_eval();
   enter_repl();
   // IrisString source = string_from_file(stdin);
   // if (!string_is_empty(source)) {

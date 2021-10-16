@@ -6,19 +6,21 @@
 // todo: (help)
 // todo: (doc <symbol>)
 
+#include "core/cimpl.c"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <signal.h>
-#include <stdnoreturn.h>
+// #include <signal.h>
 #include <stdlib.h>
 
 #include "eval.h"
 #include "types/types.h"
 #include "reader.h"
+#include "memory.h"
 #include "utils.h"
 
-#define IRIS_ARGUMENT_STACK_LIMIT 64
+#define IRIS_ARGUMENT_STACK_LIMIT 32
 
 const char* eval_welcome_msg =
   "- Iris REPL -\n"
@@ -28,9 +30,24 @@ const char* eval_welcome_msg =
 
 // todo: problem with exiting the repl
 static volatile bool repl_should_exit = false;
-static void user_interrupt_handler(int sig) {
-  (void)sig;
-  repl_should_exit = true;
+// static void user_interrupt_handler(int sig) {
+//   (void)sig;
+//   repl_should_exit = true;
+// }
+
+static IrisDict standard_scope;
+
+// todo: standard shouldn't be in eval maybe?
+void init_eval() {
+  if (dict_is_valid(standard_scope)) {
+    dict_destroy(&standard_scope);
+  }
+  standard_scope = scope_default();
+}
+
+const IrisDict* get_standard_scope_view() {
+  assert(dict_is_valid(standard_scope));
+  return &standard_scope;
 }
 
 void enter_repl() {
@@ -47,47 +64,8 @@ void enter_repl() {
     string_destroy(&line);
     list_destroy(&sprout);
   }
-  signal(SIGINT, SIG_DFL);
+  // signal(SIGINT, SIG_DFL);
   dict_destroy(&scope);
-}
-
-/*
-  @brief    Yields passed argument as it is, required for escaping evaluation
-  @variants (1: any)
-*/
-static IrisObject quote(const IrisObject* args, size_t arg_count) {
-  if (arg_count != 1ULL) {
-    panic("invalid argument count for quote"); // should it not hard crush, but return error result?
-  }
-  return args[0]; // None
-}
-
-/*
-  @brief    Exits the application
-  @variants (0) (1: int)
-*/
-noreturn static IrisObject quit(const IrisObject* args, size_t arg_count) {
-  if (arg_count > 1ULL) {
-    panic("invalid argument count for exit"); // should it not hard crush, but return error result?
-  } else if (arg_count == 0ULL) {
-    exit(0);
-  } else {
-    iris_check(args[0].kind == irisObjectKindInt, "not int object passed to exit");
-    exit(args[0].int_variant);
-  }
-}
-
-/*
-  @brief    Prints repr of objects into stdout
-  @variants (n: any)
-*/
-static IrisObject echo(const IrisObject* args, size_t arg_count) {
-  for (size_t i = 0ULL; i < arg_count; i++) {
-    if (i != 0ULL) { (void)fputc(' ', stdout); }
-    object_print_repr(args[i], false); // todo: object_repr?
-  }
-  (void)fputc('\n', stdout);
-  return (IrisObject){0}; // None
 }
 
 // todo: should be initialized once and then shared by const pointer
@@ -106,7 +84,11 @@ IrisDict scope_default() {
   IrisDict result = dict_new();
   scope_default_push_func_to_scope(echo, "echo");
   scope_default_push_func_to_scope(quit, "quit");
+  scope_default_push_func_to_scope(plus, "+");
   scope_default_push_macro_to_scope(quote, "quote");
+  scope_default_push_macro_to_scope(repeat_eval, "repeat-eval");
+  scope_default_push_macro_to_scope(timeit, "timeit");
+  scope_default_push_macro_to_scope(reduce, "reduce");
   return result;
   #undef scope_default_push_func_to_scope
   #undef scope_default_push_macro_to_scope
@@ -130,25 +112,21 @@ IrisObject eval_object(IrisObject obj, const IrisDict* scope) {
           if (supposedly_callable->kind == irisObjectKindFunc) {
             // todo: that's quite a lot of stack consumption each call, we should find another way
             //       we could create our own stack in heap specifically for building calls
-            IrisObject argument_stack[IRIS_ARGUMENT_STACK_LIMIT];
-            size_t argument_stack_len = 0ULL;
             if (!supposedly_callable->func_variant.is_macro) {
+              IrisObject argument_stack[IRIS_ARGUMENT_STACK_LIMIT];
+              size_t argument_stack_len = 0ULL;
               // collect function parameters by evaluating everything else that is in list
               for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
                 assert(object_is_valid(obj.list_variant.items[i]));
                 argument_stack[i - 1ULL] = eval_object(obj.list_variant.items[i], scope);
                 argument_stack_len++;
               }
+              // todo: check on errors from callee
+              return func_call(supposedly_callable->func_variant, argument_stack, argument_stack_len);
             } else {
-              // collect function parameters without evaluation
-              for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
-                assert(object_is_valid(obj.list_variant.items[i]));
-                argument_stack[i - 1ULL] = obj.list_variant.items[i];
-                argument_stack_len++;
-              }
+              // slice function parameters without evaluation
+              return func_call(supposedly_callable->func_variant, &obj.list_variant.items[1], obj.list_variant.len - 1ULL);
             }
-            // todo: check on errors from callee
-            return func_call(supposedly_callable->func_variant, argument_stack, argument_stack_len);
           } else {
             panic("looked up object isn't callable");
           }

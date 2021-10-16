@@ -8,7 +8,7 @@
 void iris_check(bool, const char*);
 void iris_check_warn(bool, const char*);
 
-noreturn void errno_panic();
+noreturn void errno_panic(void);
 noreturn void ferror_panic(FILE*);
 noreturn void panic(const char*);
 

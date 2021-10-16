@@ -16,6 +16,7 @@
 void object_move(IrisObject* obj) {
   switch (obj->kind) {
     case irisObjectKindInt: break;
+    case irisObjectKindFloat: break;
     case irisObjectKindString:
       string_move(&obj->string_variant);
       break;
@@ -30,10 +31,12 @@ void object_move(IrisObject* obj) {
   }
 }
 
-size_t object_hash(IrisObject obj) {
+size_t object_hash(const IrisObject obj) {
   switch (obj.kind) {
     case irisObjectKindInt:
       return obj.int_variant;
+    case irisObjectKindFloat:
+      return obj.int_variant; // interpret bit layout of int, could be dangerous
     case irisObjectKindString:
       return obj.string_variant.hash;
     default:
@@ -41,11 +44,13 @@ size_t object_hash(IrisObject obj) {
   }
 }
 
-bool object_is_valid(IrisObject obj) {
+bool object_is_valid(const IrisObject obj) {
   switch (obj.kind) {
     case irisObjectKindNone:
       return true;
     case irisObjectKindInt:
+      return true;
+    case irisObjectKindFloat: // todo: check for NaN?
       return true;
     case irisObjectKindString:
       return string_is_valid(obj.string_variant);
@@ -59,9 +64,10 @@ bool object_is_valid(IrisObject obj) {
 void object_destroy(IrisObject* obj) {
   switch (obj->kind) {
     case irisObjectKindNone:
-      panic("attempt to destroy None object");
+      panic("attempt to destroy None");
       break;
     case irisObjectKindInt: break;
+    case irisObjectKindFloat: break;
     case irisObjectKindString:
       string_destroy(&obj->string_variant);
       break;
@@ -76,17 +82,25 @@ void object_destroy(IrisObject* obj) {
   }
 }
 
-void object_print_repr(IrisObject obj, bool newline) {
+void object_print_repr(const IrisObject obj, bool newline) {
   switch (obj.kind) {
     case irisObjectKindNone:
-      (void)fprintf(stdout, "None");
+      (void)fputs("None", stdout);
       if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
       break;
     case irisObjectKindList:
       list_print_repr(obj.list_variant, newline);
       break;
     case irisObjectKindInt:
       (void)fprintf(stdout, "%d", obj.int_variant);
+      if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
+      break;
+    case irisObjectKindFloat:
+      (void)fprintf(stdout, "%f", obj.float_variant);
+      if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
       break;
     case irisObjectKindString:
       string_print_repr(obj.string_variant, newline);

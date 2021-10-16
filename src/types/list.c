@@ -82,13 +82,13 @@ void list_push_list(IrisList* list, IrisList* val_list) {
   list_move(val_list);
 }
 
-size_t list_card(IrisList list) {
+size_t list_card(const IrisList list) {
   assert(list_is_valid(list));
   return list.len;
 }
 
-bool list_is_valid(IrisList list) {
-  return (((list.len == list.cap) == 0ULL) && !pointer_is_valid(list.items)) ||
+bool list_is_valid(const IrisList list) {
+  return (((list.len == 0ULL) && (list.cap == 0ULL)) && !pointer_is_valid(list.items)) ||
     (pointer_is_valid(list.items) && (list.len <= list.cap));
 }
 
@@ -125,7 +125,7 @@ void list_move(IrisList* list) {
   list->cap = 0ULL;
 }
 
-void list_print_repr(IrisList list, bool newline) {
+void list_print_repr(const IrisList list, bool newline) {
   assert(list_is_valid(list));
   (void)fputc('(', stdout);
   for (size_t i = 0ULL; i < list.len; i++) {
@@ -134,9 +134,10 @@ void list_print_repr(IrisList list, bool newline) {
   }
   (void)fputc(')', stdout);
   if (newline) { (void)fputc('\n', stdout); }
+  fflush(stdout);
 }
 
-void list_print_internal(IrisList list, bool newline) {
+void list_print_internal(const IrisList list, bool newline) {
   assert(list_is_valid(list));
   (void)fputc('(', stdout);
   for (size_t i = 0ULL; i < list.len; i++) {
@@ -145,4 +146,5 @@ void list_print_internal(IrisList list, bool newline) {
   }
   (void)fputc(')', stdout);
   if (newline) { (void)fputc('\n', stdout); }
+  fflush(stdout);
 }

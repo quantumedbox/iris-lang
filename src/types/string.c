@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+// todo: it's not very good that header of this file is colliding with <string.h>
+//       we're using it by "types/string.h" for now, but it might be problematic in the future
+
 // todo: it might be better to shift length for it to be that 0 is always erroneous and actual 0 length strings are equal to 1
 //       then string with 4 characters has 5 virtual length
 
@@ -18,12 +21,12 @@
 #define STRING_PREALLOC 8U
 static_assert(STRING_PREALLOC > 0U, "string preallocation shouldn't be 0");
 
-bool string_is_valid(IrisString str) {
+bool string_is_valid(const IrisString str) {
   return ((str.len == 0ULL && !pointer_is_valid(str.data)) ||
     (str.len > 0ULL && pointer_is_valid(str.data)));
 }
 
-bool string_is_empty(IrisString str) {
+bool string_is_empty(const IrisString str) {
   assert(string_is_valid(str));
   return str.len == 0ULL;
 }
@@ -127,7 +130,9 @@ IrisString string_from_file(FILE* file) {
   return result;
 }
 
-bool string_compare(IrisString x, IrisString y) {
+bool string_compare(const IrisString x, const IrisString y) {
+  assert(string_is_valid(x));
+  assert(string_is_valid(y));
   #ifndef IRIS_SECURE
   return x.hash == y.hash;
   #else
@@ -143,8 +148,14 @@ bool string_compare(IrisString x, IrisString y) {
   #endif
 }
 
-char string_nth(IrisString str, size_t idx) {
-  assert(idx < str.len);
+size_t string_card(const IrisString str) {
+  assert(string_is_valid(str));
+  return str.len;
+}
+
+char string_nth(const IrisString str, size_t idx) {
+  assert(string_is_valid(str));
+  iris_check(idx < str.len, "given idx isn't within string boundaries");
   return str.data[idx];
 }
 
@@ -164,12 +175,14 @@ void string_move(IrisString* str) {
   str->len = 1ULL;
 }
 
-void string_print_repr(IrisString str, bool newline) {
+void string_print_repr(const IrisString str, bool newline) {
   (void)fprintf(stdout, "%.*s", (int)str.len, str.data);
   if (newline) { (void)fputc('\n', stdout); }
+  fflush(stdout);
 }
 
-void string_print_internal(IrisString str, bool newline) {
+void string_print_internal(const IrisString str, bool newline) {
   (void)fprintf(stdout, "<string | bytes: \"%.*s\" : len: %llu, hash: %llu)", (int)str.len, str.data, str.len, str.hash);
   if (newline) { (void)fputc('\n', stdout); }
+  fflush(stdout);
 }

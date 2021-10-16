@@ -32,14 +32,21 @@ IrisString string_from_file_line(FILE*);
 IrisString string_from_file(FILE*);
 
 IrisString string_from_view(const char* low, const char* high);
-bool string_is_valid(IrisString str);
-bool string_is_empty(IrisString str);
-void string_hash(IrisString* str);
-bool string_compare(IrisString x, IrisString y);
-char string_nth(IrisString, size_t idx);
+bool string_is_valid(const IrisString str);
+bool string_is_empty(const IrisString str);
+// void string_hash(IrisString* str);
+bool string_compare(const IrisString x, const IrisString y);
+size_t string_card(const IrisString);
+
+/*
+  @brief  Returns copy of char at given idx
+  @warn   Make sure that idx is within bounds
+*/
+char string_nth(const IrisString, size_t idx);
+
 void string_destroy(IrisString*);
 void string_move(IrisString*);
-void string_print_repr(IrisString, bool newline);
-void string_print_internal(IrisString, bool newline);
+void string_print_repr(const IrisString, bool newline);
+void string_print_internal(const IrisString, bool newline);
 
 #endif
