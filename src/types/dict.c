@@ -92,39 +92,45 @@ __forceinline void dict_grow(IrisDict* dict) {
   }
 }
 
+// todo: that's quite badly written, make it better structured
 /*
   @brief  Internal push function that is agnostic to item kind
           At this point it owns the reference to originally passed object
           and is required to eliminate dangling pointers and invalid sizes
           Be very cautious with this fuckery!
 */
-#define dict_push(m_dict, m_hash_key, m_item, m_type, m_variant, m_kind) {          \
-  dict_grow(m_dict);                                                                \
-  size_t idx = m_hash_key % m_dict->cap;                                            \
-  for (size_t i = 0; i < m_dict->buckets[idx].len; i++) {                           \
-    if (m_dict->buckets[idx].pairs[i].key == m_hash_key) {                          \
-      m_variant##_destroy(&m_dict->buckets[idx].pairs[i].item.m_variant##_variant); \
-      m_dict->buckets[idx].pairs[i].item.kind = m_kind;                             \
-      m_dict->buckets[idx].pairs[i].item.m_variant##_variant = *(m_type*)m_item;    \
-      return;                                                                       \
-    }                                                                               \
-  }                                                                                 \
-  m_dict->buckets[idx].pairs = iris_resize(                                         \
-    m_dict->buckets[idx].pairs,                                                     \
-    m_dict->buckets[idx].len + 1ULL,                                                \
-    IrisDictPair                                                                    \
-  );                                                                                \
-  IrisObject obj = { .kind = m_kind, .m_variant##_variant = *(m_type*)m_item };     \
-  IrisDictPair pair = { .key = m_hash_key, .item = obj };                           \
-  m_dict->buckets[idx].pairs[m_dict->buckets[idx].len] = pair;                      \
-  m_dict->buckets[idx].len++;                                                       \
-  m_dict->card++;                                                                   \
+#define dict_push(m_dict, m_hash_key, m_item, m_type, m_variant, m_kind) {                              \
+  dict_grow(m_dict);                                                                                    \
+  size_t dict_push_pair_idx = (m_hash_key) % m_dict->cap;                                               \
+  for (size_t i = 0; i < m_dict->buckets[dict_push_pair_idx].len; i++) {                                \
+    if (m_dict->buckets[dict_push_pair_idx].pairs[i].key == (m_hash_key)) {                             \
+      m_variant##_destroy(&m_dict->buckets[dict_push_pair_idx].pairs[i].item.m_variant##_variant);      \
+      m_dict->buckets[dict_push_pair_idx].pairs[i].item.kind = m_kind;                                  \
+      m_dict->buckets[dict_push_pair_idx].pairs[i].item.m_variant##_variant = *(m_type*)m_item;         \
+      return;                                                                                           \
+    }                                                                                                   \
+  }                                                                                                     \
+  m_dict->buckets[dict_push_pair_idx].pairs = iris_resize(                                              \
+    m_dict->buckets[dict_push_pair_idx].pairs,                                                          \
+    m_dict->buckets[dict_push_pair_idx].len + 1ULL,                                                     \
+    IrisDictPair                                                                                        \
+  );                                                                                                    \
+  IrisObject dict_push_obj = { .kind = m_kind, .m_variant##_variant = *(m_type*)m_item };               \
+  IrisDictPair dict_push_pair = { .key = (m_hash_key), .item = dict_push_obj };                         \
+  m_dict->buckets[dict_push_pair_idx].pairs[m_dict->buckets[dict_push_pair_idx].len] = dict_push_pair;  \
+  m_dict->buckets[dict_push_pair_idx].len++;                                                            \
+  m_dict->card++;                                                                                       \
 }
 
 void dict_push_object(IrisDict* dict, size_t key, IrisObject* obj) {
   switch (obj->kind) {
     case irisObjectKindString:
-      dict_push_string(dict, &obj->string_variant);
+      dict_push(dict, key, (void*)(&obj->string_variant), IrisString, string, irisObjectKindString);
+      string_move(&obj->string_variant);
+      break;
+    case irisObjectKindFunc:
+      dict_push(dict, key, (void*)(&obj->func_variant), IrisFunc, func, irisObjectKindFunc);
+      func_move(&obj->func_variant);
       break;
     default:
       panic("push to dict behavior isn't defined for object variant");
@@ -179,6 +185,7 @@ const IrisObject* dict_get_view(const IrisDict* dict, size_t key) {
       return &dict->buckets[idx].pairs[i].item;
     }
   }
+  __builtin_unreachable();
 }
 
 // todo: maybe it should check how well each bucket is formed too 

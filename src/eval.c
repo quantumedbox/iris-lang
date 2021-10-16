@@ -3,9 +3,15 @@
 //       encapsulated as much as possible
 //       for that we could probably use some kind of error object that is catched by caller afterwards
 
+// todo: (help)
+// todo: (doc <symbol>)
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <signal.h>
+#include <stdnoreturn.h>
+#include <stdlib.h>
 
 #include "eval.h"
 #include "types/types.h"
@@ -14,24 +20,40 @@
 
 #define IRIS_ARGUMENT_STACK_LIMIT 64
 
+const char* eval_welcome_msg =
+  "- Iris REPL -\n"
+  "| version -- unspecified\n"
+  "| enter (help) or (doc <name>) for getting info\n"
+  "| ctrl+c or (quit) for exit\n";
+
+// todo: problem with exiting the repl
+static volatile bool repl_should_exit = false;
+static void user_interrupt_handler(int sig) {
+  (void)sig;
+  repl_should_exit = true;
+}
+
 void enter_repl() {
+  // if (signal(SIGINT, user_interrupt_handler) == SIG_ERR) {
+  //   iris_check_warn(true, "problem with setting up SIGINT handler for repl");
+  // }
   IrisDict scope = scope_default();
-  (void)fprintf(stdout, "you're in iris repl mode // ctrl + z to exit\n");
-  while (true) {
+  (void)fprintf(stdout, "%s", eval_welcome_msg);
+  while (!repl_should_exit) {
     (void)fprintf(stdout, ">>> ");
     IrisString line = string_from_file_line(stdin);
-    // string_print_repr(line, true);
     IrisList sprout = nurture(line);
     eval(&sprout, &scope, true);
     string_destroy(&line);
     list_destroy(&sprout);
   }
+  signal(SIGINT, SIG_DFL);
   dict_destroy(&scope);
 }
 
 /*
-  @brief      Yields passed argument as it is, required for escaping evaluation
-  @variants   (1: any)
+  @brief    Yields passed argument as it is, required for escaping evaluation
+  @variants (1: any)
 */
 static IrisObject quote(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
@@ -40,6 +62,25 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
   return args[0]; // None
 }
 
+/*
+  @brief    Exits the application
+  @variants (0) (1: int)
+*/
+noreturn static IrisObject quit(const IrisObject* args, size_t arg_count) {
+  if (arg_count > 1ULL) {
+    panic("invalid argument count for exit"); // should it not hard crush, but return error result?
+  } else if (arg_count == 0ULL) {
+    exit(0);
+  } else {
+    iris_check(args[0].kind == irisObjectKindInt, "not int object passed to exit");
+    exit(args[0].int_variant);
+  }
+}
+
+/*
+  @brief    Prints repr of objects into stdout
+  @variants (n: any)
+*/
 static IrisObject echo(const IrisObject* args, size_t arg_count) {
   for (size_t i = 0ULL; i < arg_count; i++) {
     if (i != 0ULL) { (void)fputc(' ', stdout); }
@@ -64,6 +105,7 @@ IrisDict scope_default() {
 
   IrisDict result = dict_new();
   scope_default_push_func_to_scope(echo, "echo");
+  scope_default_push_func_to_scope(quit, "quit");
   scope_default_push_macro_to_scope(quote, "quote");
   return result;
   #undef scope_default_push_func_to_scope

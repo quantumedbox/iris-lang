@@ -88,7 +88,7 @@ size_t list_card(IrisList list) {
 }
 
 bool list_is_valid(IrisList list) {
-  return ((list.len == list.cap == 0ULL) && !pointer_is_valid(list.items)) ||
+  return (((list.len == list.cap) == 0ULL) && !pointer_is_valid(list.items)) ||
     (pointer_is_valid(list.items) && (list.len <= list.cap));
 }
 

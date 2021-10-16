@@ -32,6 +32,7 @@ typedef struct _IrisFunc {
     IrisFuncPrototype cfunc;
     struct _IrisList codedata;
   };
+  struct _IrisString docstring; // todo
 } IrisFunc;
 
 /*

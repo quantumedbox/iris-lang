@@ -18,7 +18,7 @@ IrisFunc func_macro_from_cfunc(IrisFuncPrototype cfunc) {
 
 IrisObject func_call(IrisFunc func, const IrisObject* args, size_t arg_count) {
   iris_check(func_is_valid(func), "attempt to call ill-formed function object");
-  iris_check(((arg_count > 0ULL) && pointer_is_valid(args)) || (arg_count == 0ULL && !pointer_is_valid(args)), "ill-formed call arguments");
+  iris_check(((arg_count > 0ULL) && pointer_is_valid(args)) || (arg_count == 0ULL /*&& !pointer_is_valid(args)*/), "ill-formed call arguments");
   IrisObject result = {0};
   switch (func.type) {
     case irisFuncTypeC:
@@ -44,7 +44,7 @@ bool func_is_valid(IrisFunc func) {
 
 void func_destroy(IrisFunc* func) {
   assert(func_is_valid(*func));
-  if (func->type == irisObjectKindList) {
+  if ((IrisObjectKind)func->type == irisObjectKindList) {
     list_destroy(&func->codedata);
   }
   func_move(func);
@@ -57,7 +57,7 @@ void func_move(IrisFunc* func) {
 
 void func_print_repr(IrisFunc func, bool newline) {
   assert(func_is_valid(func));
-  (void)fprintf(stdout, "<callable>", func.cfunc);
+  (void)fprintf(stdout, "<callable>");
   if (newline) { (void)fputc('\n', stdout); }
 }
 
@@ -74,5 +74,7 @@ void func_print_internal(IrisFunc func, bool newline) {
       (void)fputc('>', stdout);
       if (newline) { (void)fputc('\n', stdout); }
       break;
+    default:
+      panic("internal printing for function variant unspecified");
   }
 }

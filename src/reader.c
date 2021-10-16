@@ -172,14 +172,15 @@ IrisList nurture(IrisString str) {
         continue;
       }
       case ';': {
-        do {
+        while (true) {
           str_pos++;
-          if (string_nth(str, str_pos) == '\n') {
+          if (str_pos >= str.len) {
+            break;
+          } else if (string_nth(str, str_pos) == '\n') {
             str_pos++;
             break;
           }
         }
-        while (str_pos < str.len);
         continue;
       }
       default: {

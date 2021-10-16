@@ -24,6 +24,7 @@ void object_move(IrisObject* obj) {
       break;
     case irisObjectKindDict:
       dict_move(&obj->dict_variant);
+      break;
     default:
       panic("move behavior for object variant isn't defined");
   }

@@ -4,10 +4,22 @@
 #include <assert.h>
 
 #include "memory.h"
+#include "types/types.h"
 #include "utils.h"
 
 // todo: it's possible to log status and lifetime changes of every allocation
 // todo: something similar to mcheck.h functionalities, we could trace double frees and validity of pointers as allocations
+
+#ifdef IRIS_COLLECT_MEMORY_METRICS
+// static IrisDict allocations;
+static size_t n_allocations = 0ULL;
+static size_t n_resizes = 0ULL;
+static size_t n_frees = 0ULL;
+// size_t memory_usage_current = 0ULL; // todo: for that we need to trace resizes which requires some additional work
+// size_t memory_usage_peak = 0ULL;    //       we could probably use dictionary for that and use memory locations as keys
+                                       //       tho there's problem with that as info about allocations will consume memory too
+                                       //       so, info will be quite spoiled
+#endif
 
 bool pointer_is_valid(const void* p) {
   // extern char etext;
@@ -25,29 +37,25 @@ IrisPointerStatus pointer_status(const void* p) {
   }
 }
 
-#ifdef IRIS_COLLECT_MEMORY_METRICS
-unsigned int n_allocations = 0U;
-unsigned int n_resizes = 0U;
-unsigned int n_frees = 0U;
-#endif
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 void* iris_standard_alloc(size_t bytes) {
-  if (bytes == 0) {
+  if (bytes == 0ULL) {
     return NULL;
   }
   void* mem = malloc(bytes);
-  assert(pointer_is_valid(mem));
+  assert(pointer_is_valid(mem)); // todo: shouldn't be assert, but user code catch-able error
   #ifdef IRIS_COLLECT_MEMORY_METRICS
   n_allocations++;
   #endif
-  // printf("%x\n", mem);
   return mem;
 }
+#pragma GCC diagnostic pop
 
 void* iris_standard_resize(void* mem, size_t bytes) {
   if (mem == NULL) {
     return iris_standard_alloc(bytes);
-  } else if (bytes == 0) {
+  } else if (bytes == 0ULL) {
     iris_standard_free(mem);
     return NULL;
   }
@@ -57,7 +65,6 @@ void* iris_standard_resize(void* mem, size_t bytes) {
   #ifdef IRIS_COLLECT_MEMORY_METRICS
   n_resizes++;
   #endif
-  // printf("%x\n", resized);
   return resized;
 }
 
@@ -77,10 +84,10 @@ void* iris_alloc0_untyped(size_t bytes) {
 
 void iris_metrics_print_repr() {
   #ifdef IRIS_COLLECT_MEMORY_METRICS
-  (void)fprintf(stdout, "%s\n", "-- memory metrics:");
-  (void)fprintf(stdout, "allocations: %u\n", n_allocations);
-  (void)fprintf(stdout, "deallocations: %u, leaked: %d\n", n_frees, (int)n_allocations - (int)n_frees);
-  (void)fprintf(stdout, "resizes: %u\n", n_resizes);
+  (void)fprintf(stdout, "-- memory metrics:\n");
+  (void)fprintf(stdout, "allocations: %llu\n", n_allocations);
+  (void)fprintf(stdout, "deallocations: %llu, leaked: %lld\n", n_frees, (long long int)n_allocations - (long long int)n_frees);
+  (void)fprintf(stdout, "resizes: %llu\n", n_resizes);
   #else
   (void)fprintf(stdout, "-- memory metrics: no data was collected as collection was turned off on compilation");
   #endif
