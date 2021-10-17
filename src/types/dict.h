@@ -18,12 +18,11 @@ typedef struct _IrisDict {
   size_t cap;  // allocated buckets
 } IrisDict;
 
-// #include "types/types.h"
-
 IrisDict dict_new(void);
-void dict_push_object(IrisDict*, size_t key, struct _IrisObject*);
+void dict_push_object(IrisDict*, size_t key, struct _IrisObject*); // todo: we probably should require IrisObject for hashing instead of key directly
 void dict_push_string(IrisDict*, struct _IrisString*);
-void dict_push_func(IrisDict*, struct _IrisString*, struct _IrisFunc*);
+void dict_push_func(IrisDict*, struct _IrisString*, struct _IrisFunc*); // todo: why does it require string?
+void dict_push_list(IrisDict*, size_t key, struct _IrisList*);
 void dict_erase_by_key(IrisDict*, size_t key);
 bool dict_has(const IrisDict, size_t key);
 

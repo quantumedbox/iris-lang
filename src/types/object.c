@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "types/types.h"
+#include "types/object.h"
 #include "utils.h"
 
 // #include "types/string.h"
@@ -13,6 +13,20 @@
 //       we probably need another class of functions for copies specifically
 //       also we need to invalidate original moved objects, so, maybe require passing mutable pointer?
 // todo: implement move_* functions for types
+
+struct _IrisObject object_copy(const struct _IrisObject obj) {
+  assert(object_is_valid(obj));
+  switch (obj.kind) {
+    case irisObjectKindInt:
+      return (IrisObject){ .kind = irisObjectKindInt, .int_variant = obj.int_variant };
+    case irisObjectKindFloat:
+      return (IrisObject){ .kind = irisObjectKindFloat, .int_variant = obj.float_variant };
+    case irisObjectKindString:
+      return string_to_object(string_copy(obj.string_variant));
+    default:
+      panic("copy behavior for object variant isn't defined");
+  }
+}
 
 void object_move(IrisObject* obj) {
   assert(object_is_valid(*obj));
@@ -29,7 +43,7 @@ void object_move(IrisObject* obj) {
       dict_move(&obj->dict_variant);
       break;
     default:
-      iris_check(true, "move behavior for object variant isn't defined");
+      panic("move behavior for object variant isn't defined");
   }
 }
 
@@ -43,7 +57,7 @@ size_t object_hash(const IrisObject obj) {
     case irisObjectKindString:
       return obj.string_variant.hash;
     default:
-      iris_check(true, "hash behavior for object variant isn't defined");
+      panic("hash behavior for object variant isn't defined");
   }
   __builtin_unreachable();
 }
@@ -68,7 +82,7 @@ bool object_is_valid(const IrisObject obj) {
     case irisObjectKindFunc:
       return func_is_valid(obj.func_variant);
     default:
-      iris_check(true, "validity check for object variant isn't defined");
+      panic("validity check for object variant isn't defined");
   }
   __builtin_unreachable();
 }
@@ -100,6 +114,41 @@ void object_destroy(IrisObject* obj) {
       break;
     default:
       panic("destroy behavior for object variant isn't defined");
+  }
+}
+
+void object_print(const IrisObject obj, bool newline) {
+  assert(object_is_valid(obj));
+  switch (obj.kind) {
+    case irisObjectKindNone:
+      (void)fputs("None", stdout);
+      if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
+      break;
+    case irisObjectKindList:
+      list_print_repr(obj.list_variant, newline);
+      break;
+    case irisObjectKindInt:
+      (void)fprintf(stdout, "%d", obj.int_variant);
+      if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
+      break;
+    case irisObjectKindFloat:
+      (void)fprintf(stdout, "%f", obj.float_variant);
+      if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
+      break;
+    case irisObjectKindString:
+      string_print(obj.string_variant, newline);
+      break;
+    case irisObjectKindFunc:
+      func_print_repr(obj.func_variant, newline);
+      break;
+    case irisObjectKindError:
+      error_print_repr(obj.error_variant, newline);
+      break;
+    default:
+      panic("printing behaviour for obj type isn't defined");
   }
 }
 

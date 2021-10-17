@@ -47,6 +47,14 @@ void string_hash(IrisString* str) {
   str->hash = hash;
 }
 
+IrisString string_copy(const IrisString str) {
+  assert(string_is_valid(str));
+  IrisString result = { .len = str.len };
+  result.data = iris_alloc(str.len, char);
+  memcpy(&result.data, &str.data, str.len);
+  return result;
+}
+
 IrisString string_from_chars(const char* chars) {
   // assert(pointer_is_valid(chars));
   size_t len = strlen(chars);
@@ -174,8 +182,14 @@ void string_move(IrisString* str) {
   str->len = 1ULL;
 }
 
-void string_print_repr(const IrisString str, bool newline) {
+void string_print(const IrisString str, bool newline) {
   (void)fprintf(stdout, "%.*s", (int)str.len, str.data);
+  if (newline) { (void)fputc('\n', stdout); }
+  fflush(stdout);
+}
+
+void string_print_repr(const IrisString str, bool newline) {
+  (void)fprintf(stdout, "\"%.*s\"", (int)str.len, str.data);
   if (newline) { (void)fputc('\n', stdout); }
   fflush(stdout);
 }

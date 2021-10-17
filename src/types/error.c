@@ -2,6 +2,7 @@
 
 #include "error.h"
 #include "types/types.h"
+#include "utils.h"
 
 // todo: make it array instead as type do correlate with indexes
 static IrisDict error_desc = {0};
@@ -19,6 +20,14 @@ void init_error_module(void) {
   init_error_module_push_desc(irisErrorNameError,         "NameError");
   init_error_module_push_desc(irisErrorUserError,         "UserError");
   static_assert(IRIS_USER_ERRORS == 5U, "error description missed");
+}
+
+void deinit_error_module(void) {
+  if (dict_is_valid(error_desc)) {
+    dict_destroy(&error_desc);
+  } else {
+    panic("error description dictionary is ill-formed");
+  }
 }
 
 IrisError error_new(IrisErrorType type) {
@@ -58,10 +67,10 @@ void error_move(IrisError* err) {
 void error_print_repr(const IrisError err, bool newline) {
   assert((err.type < error_enum) && (err.type >= irisErrorNoError));
   const IrisObject* desc = dict_get_view(&error_desc, err.type); // will fail if type isn't implemented
-  string_print_repr(desc->string_variant, false);
+  string_print(desc->string_variant, false);
   if (!string_is_empty(err.msg)) {
     (void)fputs(": ", stdout);
-    string_print_repr(err.msg, false);
+    string_print(err.msg, false);
   } else {
     (void)fputs(": no message", stdout);
   }

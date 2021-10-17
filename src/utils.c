@@ -15,9 +15,8 @@ void iris_check(bool status, const char* msg) {
 }
 
 void iris_check_warn(bool status, const char* msg) {
-  iris_check(msg != NULL, "NULL passed as panic message");
-  if (status) {
-    (void)fprintf(stderr, "warning! %s\n", msg);
+  if (!status) {
+    warning(msg);
   }
 }
 
@@ -35,4 +34,9 @@ noreturn void panic(const char* msg) {
   iris_check(msg != NULL, "NULL passed as panic message");
   (void)fprintf(stderr, "program panicked with message: \"%s\"\n", msg);
   exit(1);
+}
+
+void warning(const char* msg) {
+  iris_check(msg != NULL, "NULL passed as panic message");
+  (void)fprintf(stderr, "warning! %s\n", msg);
 }

@@ -7,6 +7,7 @@ goals:
 - metaprogramming / generalization is key
 - optimizable by design
 - lists as reversed arrays
+- philosophy of dynamic and metamorphic C
 
 - this particular implementation is restricted to typed that are valid
 - for .add-64 builtin function, user don't have to specify types unless required

@@ -262,7 +262,7 @@ IrisList nurture(IrisString str) {
       }
     }
   }
-  iris_check_warn(parse_next_as_quote, "trailing quote marker at the end");
+  iris_check_warn(!parse_next_as_quote, "trailing quote marker at the end");
   iris_check(stack_pos == 0ULL, "trailing unclosed list");
   return result;
 }

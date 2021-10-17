@@ -16,11 +16,13 @@ typedef struct _IrisList {
 } IrisList;
 
 IrisList list_new(void);
+IrisList list_copy(const IrisList);
 void list_push_object(IrisList*, struct _IrisObject*);
 void list_push_int(IrisList*, int); // todo: should it be passed by ref to?
 void list_push_string(IrisList*, struct _IrisString*);
 void list_push_list(IrisList*, IrisList*);
 bool list_is_valid(const IrisList);
+bool list_is_empty(const IrisList);
 size_t list_card(const IrisList);
 bool list_is_valid(const IrisList);
 

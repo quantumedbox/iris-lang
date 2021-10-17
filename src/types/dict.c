@@ -151,6 +151,12 @@ void dict_push_func(IrisDict* dict, struct _IrisString* symbol, struct _IrisFunc
   string_destroy(symbol);
 }
 
+void dict_push_list(IrisDict* dict, size_t key, struct _IrisList* list) {
+  assert(list_is_valid(*list));
+  dict_push(dict, key, (void*)list, IrisList, list, irisObjectKindList);
+  list_move(list);
+}
+
 #undef dict_push
 
 // todo: should it resize the memory block?

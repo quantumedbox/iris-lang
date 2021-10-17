@@ -15,6 +15,8 @@ typedef struct _IrisString {
   size_t hash;
 } IrisString;
 
+IrisString string_copy(const IrisString);
+
 /*
   @brief  Create string object from null-terminated string
   @warn   Use only for const static strings in binary and don't mess with dynamic C strings
@@ -32,10 +34,9 @@ IrisString string_from_file_line(FILE*);
 IrisString string_from_file(FILE*);
 
 IrisString string_from_view(const char* low, const char* high);
-bool string_is_valid(const IrisString str);
-bool string_is_empty(const IrisString str);
-// void string_hash(IrisString* str);
-bool string_compare(const IrisString x, const IrisString y);
+bool string_is_valid(const IrisString);
+bool string_is_empty(const IrisString);
+bool string_compare(const IrisString, const IrisString);
 size_t string_card(const IrisString);
 
 /*
@@ -46,7 +47,10 @@ char string_nth(const IrisString, size_t idx);
 
 void string_destroy(IrisString*);
 void string_move(IrisString*);
+void string_print(const IrisString, bool newline);
 void string_print_repr(const IrisString, bool newline);
 void string_print_internal(const IrisString, bool newline);
+
+#define string_to_object(str) (IrisObject){ .kind = irisObjectKindString, .string_variant = str };
 
 #endif

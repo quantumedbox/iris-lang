@@ -16,6 +16,21 @@ IrisList list_new() {
   return result;
 }
 
+IrisList list_copy(const IrisList list) {
+  assert(list_is_valid(list));
+  if (list_is_empty(list)) {
+    return (IrisList){0};
+  } else {
+    IrisList result = {0};
+    for (size_t i = 0; i < list.len; i++) {
+      IrisObject item_copy = object_copy(list.items[i]);
+      object_print_repr(item_copy, true);
+      list_push_object(&result, &item_copy);
+    }
+    return result;
+  }
+}
+
 __forceinline void list_grow(IrisList* list) {
   if (list->len == list->cap) {
     list->cap += LIST_PREALLOC;
@@ -28,14 +43,20 @@ __forceinline void list_grow(IrisList* list) {
   @warn   Passed object should no longer be used!
 */
 void list_push_object(IrisList* list, IrisObject* obj) {
-  assert(pointer_is_valid(list));
-  assert(list_is_valid(*list));
-  list_grow(list);
+  // assert(pointer_is_valid(list));
+  // assert(list_is_valid(*list));
+  // list_grow(list);
+  // list->items[list->len] = *obj;
+  // list->len++;
   switch (obj->kind) {
-    case irisObjectKindInt:
-      list->items[list->len] = *obj;
-      list->len++;
-      list_move(&obj->list_variant);
+    case irisObjectKindInt: 
+      list_push_int(list, obj->int_variant);
+      break;
+    case irisObjectKindList:
+      list_push_list(list, &obj->list_variant);
+      break;
+    case irisObjectKindString:
+      list_push_string(list, &obj->string_variant);
       break;
     default: panic("copy to list behavior for pushing to list not defined for type");
   }
@@ -85,6 +106,11 @@ void list_push_list(IrisList* list, IrisList* val_list) {
 size_t list_card(const IrisList list) {
   assert(list_is_valid(list));
   return list.len;
+}
+
+bool list_is_empty(const IrisList list) {
+  assert(list_is_valid(list));
+  return list_card(list) == 0;
 }
 
 bool list_is_valid(const IrisList list) {

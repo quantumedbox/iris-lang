@@ -31,6 +31,7 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
+  assert(pointer_is_valid(args));
   return args[0];
 }
 
@@ -41,7 +42,7 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
   @variants (0) (1: int)
 */
 noreturn static IrisObject quit(const IrisObject* args, size_t arg_count) {
-  iris_check(arg_count == 1ULL, "invalid argument count for exit"); // should it not hard crush, but return error result?
+  iris_check(arg_count <= 1ULL, "invalid argument count for exit"); // should it not hard crush, but return error result?
   if (arg_count == 0ULL) {
     exit(0);
   } else {
@@ -73,16 +74,18 @@ static IrisObject echo(const IrisObject* args, size_t arg_count) {
   @variants (2: int body)
 */
 static IrisObject repeat_eval(const IrisObject* args, size_t arg_count) {
-  assert(pointer_is_valid(args));
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   } else if (args[0].kind != irisObjectKindInt) {
     return error_to_object(error_from_chars(irisErrorTypeError, "first repeat argument should be int"));
   }
+  assert(pointer_is_valid(args));
   const IrisDict* scope = get_standard_scope_view();
   for (int i = 0; i < args[0].int_variant; i++) {
     IrisObject something = eval_object(args[1], scope);
-    catch_error(something);
+    if (something.kind == irisObjectKindError) {
+      return something;
+    }
     object_destroy(&something);
   }
   return (IrisObject){0}; // None
@@ -113,9 +116,12 @@ static IrisObject timeit(const IrisObject* args, size_t arg_count) {
   const IrisDict* scope = get_standard_scope_view();
   clock_t start_time = clock();
   IrisObject result = eval_object(args[0], scope);
-  catch_error(result);
+  if (result.kind == irisObjectKindError) {
+    goto RETURN;
+  }
   clock_t end_time = clock();
   (void)fprintf(stdout, "time of execution: %f\n", (float)(end_time - start_time) / CLOCKS_PER_SEC);
+RETURN:
   return result;
 }
 
@@ -142,7 +148,9 @@ static IrisObject reduce(const IrisObject* args, size_t arg_count) {
   }
   const IrisDict* scope = get_standard_scope_view();
   IrisObject supposedly_list = eval_object(args[1], scope);
-  catch_error(supposedly_list);
+  if (supposedly_list.kind == irisObjectKindError) {
+    return supposedly_list;
+  }
   if (supposedly_list.kind != irisObjectKindList) {
     return error_to_object(error_from_chars(irisErrorTypeError, "second argument of reduce should be list"));
   }
@@ -155,7 +163,9 @@ static IrisObject reduce(const IrisObject* args, size_t arg_count) {
   };
   for (size_t i = 2ULL; i < supposedly_list.list_variant.len; i++) {
     cell[1] = supposedly_list.list_variant.items[i];
+    IrisObject to_destoy = cell[0];
     cell[0] = func_call(args[0].func_variant, cell, 2ULL);
+    object_destroy(&to_destoy);
   }
   return cell[0];
 }
@@ -167,10 +177,10 @@ static IrisObject reduce(const IrisObject* args, size_t arg_count) {
   @variants (2: (float | int) (float | int))
 */
 static IrisObject add(const IrisObject* args, size_t arg_count) {
-  assert(pointer_is_valid(args));
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
+  assert(pointer_is_valid(args));
   if ((args[0].kind != irisObjectKindInt) && (args[0].kind != irisObjectKindFloat)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }
@@ -201,10 +211,10 @@ static IrisObject add(const IrisObject* args, size_t arg_count) {
   @variants (2: (float | int) (float | int))
 */
 static IrisObject sub(const IrisObject* args, size_t arg_count) {
-  assert(pointer_is_valid(args));
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
+  assert(pointer_is_valid(args));
   if ((args[0].kind != irisObjectKindInt) && (args[0].kind != irisObjectKindFloat)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }

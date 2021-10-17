@@ -3,10 +3,19 @@
 
 #include "types/types.h"
 
-void init_eval_module(void);
+// todo: define rules about ownership of objects in evaluation
 
+void eval_module_init(int argc, const char* argv[]);
+void eval_module_deinit(void);
+
+/*
+  @warn Should be called after eval_module_init()
+*/
 const IrisDict* get_standard_scope_view(void);
 
+/*
+  @warn Should be called after eval_module_init()
+*/
 void enter_repl(void);
 
 /*
@@ -16,11 +25,6 @@ void enter_repl(void);
 */
 void eval(const IrisList*, const IrisDict* scope, bool in_repl);
 
-const IrisObject eval_object(const IrisObject, const IrisDict* scope);
-
-/*
-  @brief Construct default scope for evaluation
-*/
-// IrisDict scope_default(void);
+IrisObject eval_object(const IrisObject, const IrisDict* scope);
 
 #endif
