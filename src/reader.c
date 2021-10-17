@@ -43,7 +43,7 @@ __forceinline bool is_reserved_char(char ch) {
   @brief  Skip any whitespace character
   @return How many characters are skipped
 */
-size_t eat_whitespace(const char* slice, const char* limit) {
+static size_t eat_whitespace(const char* slice, const char* limit) {
   assert(slice <= limit);
   const char* ptr = slice;
   while (limit >= ptr) {
@@ -56,32 +56,48 @@ size_t eat_whitespace(const char* slice, const char* limit) {
   return (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
 }
 
-// todo: parse 0
-// todo: parse negative
 /*
   @brief  Try to parse iris integer from byte stream
           On success valid integer IrisObject variant will be written
           Also it's guaranteed that on failure pointed target will not change
   @return True on success, otherwise false
 */
-bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+static bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+  // todo: this macro usage is kinda bad as it operates on variables from outside its definition
   assert(slice <= limit);
   assert(target != NULL);
   assert(parsed != NULL);
+  #define parse_int_impl(m_op) \
+    while (limit >= ptr) {     \
+    if ((*ptr >= '0') && (*ptr <= '9')) { \
+      int check = result.int_variant;     \
+      result.int_variant = result.int_variant * 10 m_op (*ptr - '0'); \
+      iris_check(check < result.int_variant, "can't contain given value in iris integer object (overflow detected)"); \
+      ptr++; \
+    } else { \
+      break; \
+    } \
+  }
+  IrisObject result = { .kind = irisObjectKindInt };
   const char* ptr = slice;
-  if ((*ptr >= '1') && (*ptr <= '9')) {
+  if (*ptr == '0') {
+    result.int_variant = 0;
+    *target = result;
+    *parsed = 1ULL;
+    return true;
+  } else if (*ptr == '-') {
+    if ((*ptr >= '1') && (*ptr <= '9')) {
+      IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
+      ptr++;
+      parse_int_impl(-);
+      *target = result;
+      *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
+      return true;
+    }
+  } else if ((*ptr >= '1') && (*ptr <= '9')) {
     IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
     ptr++;
-    while (limit >= ptr) {
-      if ((*ptr >= '0') && (*ptr <= '9')) {
-        int check = result.int_variant;
-        result.int_variant = result.int_variant * 10 + (*ptr - '0');
-        iris_check(check < result.int_variant, "can't contain given value in iris integer object (overflow detected)");
-        ptr++;
-      } else {
-        break;
-      }
-    }
+    parse_int_impl(+);
     *target = result;
     *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
     return true;
@@ -96,7 +112,7 @@ bool parse_int(IrisObject* target, size_t* parsed, const char* slice, const char
           Also it's guaranteed that on failure pointed target will not change
   @return True on success, otherwise false
 */
-bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+static bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
   assert(slice <= limit);
   assert(target != NULL);
   assert(parsed != NULL);
@@ -124,7 +140,7 @@ bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* slice, 
           Also it's guaranteed that on failure pointed target will not change
   @return True on success, otherwise false
 */
-bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+static bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
   assert(slice <= limit);
   assert(target != NULL);
   assert(parsed != NULL);
@@ -207,13 +223,38 @@ IrisList nurture(IrisString str) {
         IrisObject obj_parsed;
         size_t chars_parsed;
         if (parse_int(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          list_push_int(stack[stack_pos], obj_parsed.int_variant);
+          if (parse_next_as_quote) {
+            parse_next_as_quote = false;
+            IrisList quote_list = list_new();
+            IrisString quote_sym = string_from_chars("quote");
+            list_push_string(&quote_list, &quote_sym);
+            list_push_int(&quote_list, obj_parsed.int_variant);
+            list_push_list(stack[stack_pos], &quote_list);
+          } else {
+            list_push_int(stack[stack_pos], obj_parsed.int_variant);
+          }
           str_pos += chars_parsed;
         } else if (parse_marked_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          list_push_string(stack[stack_pos], &obj_parsed.string_variant);
+          if (parse_next_as_quote) {
+            parse_next_as_quote = false;
+          }
+          IrisList quote_list = list_new();
+          IrisString quote_sym = string_from_chars("quote");
+          list_push_string(&quote_list, &quote_sym);
+          list_push_string(&quote_list, &obj_parsed.string_variant);
+          list_push_list(stack[stack_pos], &quote_list);
           str_pos += chars_parsed;
         } else if (parse_atomic_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
-          list_push_string(stack[stack_pos], &obj_parsed.string_variant);
+          if (parse_next_as_quote) {
+            parse_next_as_quote = false;
+            IrisList quote_list = list_new();
+            IrisString quote_sym = string_from_chars("quote");
+            list_push_string(&quote_list, &quote_sym);
+            list_push_string(&quote_list, &obj_parsed.string_variant);
+            list_push_list(stack[stack_pos], &quote_list);
+          } else {
+            list_push_string(stack[stack_pos], &obj_parsed.string_variant);
+          }
           str_pos += chars_parsed;
         } else {
           panic("unknown character");
@@ -221,6 +262,7 @@ IrisList nurture(IrisString str) {
       }
     }
   }
+  iris_check_warn(parse_next_as_quote, "trailing quote marker at the end");
   iris_check(stack_pos == 0ULL, "trailing unclosed list");
   return result;
 }

@@ -151,6 +151,8 @@ void dict_push_func(IrisDict* dict, struct _IrisString* symbol, struct _IrisFunc
   string_destroy(symbol);
 }
 
+#undef dict_push
+
 // todo: should it resize the memory block?
 //       it should be okay that bucket forgets its capacity, as it will not attempt to use junk
 //       but memory will be freed only on next insertion in the same bucket which is quite random

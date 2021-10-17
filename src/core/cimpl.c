@@ -12,6 +12,16 @@
 #include "utils.h"
 
 // todo: they're bodged as hell, should standardize the way they're implemented
+// todo: those things should be generated, not written manually. at least huge portion of it
+
+/*
+  @brief    Calls built-in memory metrics function
+  @variants (0)
+*/
+static IrisObject metrics(const IrisObject* args, size_t arg_count) {
+  iris_metrics_print_repr();
+  return (IrisObject){0}; // None
+}
 
 /*
   @brief    Yields passed argument as it is, required for escaping evaluation
@@ -21,7 +31,7 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
-  return args[0]; // None
+  return args[0];
 }
 
 // todo: should we not declare it as noreturn to have ability to return errors?
@@ -103,6 +113,7 @@ static IrisObject timeit(const IrisObject* args, size_t arg_count) {
   const IrisDict* scope = get_standard_scope_view();
   clock_t start_time = clock();
   IrisObject result = eval_object(args[0], scope);
+  catch_error(result);
   clock_t end_time = clock();
   (void)fprintf(stdout, "time of execution: %f\n", (float)(end_time - start_time) / CLOCKS_PER_SEC);
   return result;
@@ -126,32 +137,25 @@ static IrisObject reduce(const IrisObject* args, size_t arg_count) {
   assert(pointer_is_valid(args));
   assert(object_is_valid(args[0]));
   assert(object_is_valid(args[1]));
-  if (args[0].kind != irisObjectKindString) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "first argument of reduce should be symbol"));
+  if (args[0].kind != irisObjectKindFunc) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "first argument of reduce should be callable"));
   }
   const IrisDict* scope = get_standard_scope_view();
   IrisObject supposedly_list = eval_object(args[1], scope);
+  catch_error(supposedly_list);
   if (supposedly_list.kind != irisObjectKindList) {
     return error_to_object(error_from_chars(irisErrorTypeError, "second argument of reduce should be list"));
   }
   if (supposedly_list.list_variant.len < 2ULL) {
     return error_to_object(error_from_chars(irisErrorTypeError, "there should be at least 2 arguments in list to be reduced"));
-
-  }
-  if (!dict_has(*scope, args[0].string_variant.hash)) {
-    return error_to_object(error_from_chars(irisErrorNameError, "unknown symbol"));
-  }
-  const IrisObject* supposedly_callable = dict_get_view(scope, args[0].string_variant.hash);
-  if (supposedly_callable->kind != irisObjectKindFunc) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "looked up object isn't callable"));
   }
   IrisObject cell[2] = {
-    func_call(supposedly_callable->func_variant, &supposedly_list.list_variant.items[0], 2ULL),
+    func_call(args[0].func_variant, &supposedly_list.list_variant.items[0], 2ULL),
     (IrisObject){0}
   };
   for (size_t i = 2ULL; i < supposedly_list.list_variant.len; i++) {
     cell[1] = supposedly_list.list_variant.items[i];
-    cell[0] = func_call(supposedly_callable->func_variant, cell, 2ULL);
+    cell[0] = func_call(args[0].func_variant, cell, 2ULL);
   }
   return cell[0];
 }
@@ -162,7 +166,7 @@ static IrisObject reduce(const IrisObject* args, size_t arg_count) {
   @return   Float | Int
   @variants (2: (float | int) (float | int))
 */
-static IrisObject plus(const IrisObject* args, size_t arg_count) {
+static IrisObject add(const IrisObject* args, size_t arg_count) {
   assert(pointer_is_valid(args));
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
@@ -173,21 +177,53 @@ static IrisObject plus(const IrisObject* args, size_t arg_count) {
   if ((args[1].kind != irisObjectKindInt) && (args[1].kind != irisObjectKindFloat)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }
-  IrisObject result = {0};
   if (args[0].kind != args[1].kind) {
-    result = (IrisObject){
+    return (IrisObject){
       .kind = irisObjectKindFloat,
       .float_variant =
         ((args[0].kind == irisObjectKindInt) ? (float)args[0].int_variant : args[0].float_variant) +
         ((args[1].kind == irisObjectKindInt) ? (float)args[1].int_variant : args[1].float_variant)
     };
   } else {
-    result = (IrisObject){
+    return (IrisObject){
       .kind = args[0].kind,
       .int_variant =
         ((args[0].kind == irisObjectKindInt) ? args[0].int_variant : args[0].float_variant) +
         ((args[1].kind == irisObjectKindInt) ? args[1].int_variant : args[1].float_variant)
     };
   }
-  return result;
+}
+
+/*
+  @brief    Subtraction operation
+            Promotes integers to floats if one of arg is float
+  @return   Float | Int
+  @variants (2: (float | int) (float | int))
+*/
+static IrisObject sub(const IrisObject* args, size_t arg_count) {
+  assert(pointer_is_valid(args));
+  if (arg_count != 2ULL) {
+    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+  }
+  if ((args[0].kind != irisObjectKindInt) && (args[0].kind != irisObjectKindFloat)) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
+  }
+  if ((args[1].kind != irisObjectKindInt) && (args[1].kind != irisObjectKindFloat)) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
+  }
+  if (args[0].kind != args[1].kind) {
+    return (IrisObject){
+      .kind = irisObjectKindFloat,
+      .float_variant =
+        ((args[0].kind == irisObjectKindInt) ? (float)args[0].int_variant : args[0].float_variant) -
+        ((args[1].kind == irisObjectKindInt) ? (float)args[1].int_variant : args[1].float_variant)
+    };
+  } else {
+    return (IrisObject){
+      .kind = args[0].kind,
+      .int_variant =
+        ((args[0].kind == irisObjectKindInt) ? args[0].int_variant : args[0].float_variant) -
+        ((args[1].kind == irisObjectKindInt) ? args[1].int_variant : args[1].float_variant)
+    };
+  }
 }

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 
 #include "types/types.h"
 #include "utils.h"
@@ -14,6 +15,7 @@
 // todo: implement move_* functions for types
 
 void object_move(IrisObject* obj) {
+  assert(object_is_valid(*obj));
   switch (obj->kind) {
     case irisObjectKindInt: break;
     case irisObjectKindFloat: break;
@@ -27,11 +29,12 @@ void object_move(IrisObject* obj) {
       dict_move(&obj->dict_variant);
       break;
     default:
-      panic("move behavior for object variant isn't defined");
+      iris_check(true, "move behavior for object variant isn't defined");
   }
 }
 
 size_t object_hash(const IrisObject obj) {
+  assert(object_is_valid(obj));
   switch (obj.kind) {
     case irisObjectKindInt:
       return obj.int_variant;
@@ -40,11 +43,15 @@ size_t object_hash(const IrisObject obj) {
     case irisObjectKindString:
       return obj.string_variant.hash;
     default:
-      panic("hash behavior for object variant isn't defined");
+      iris_check(true, "hash behavior for object variant isn't defined");
   }
+  __builtin_unreachable();
 }
 
 bool object_is_valid(const IrisObject obj) {
+  if (obj.kind > N_OBJECT_KINDS) {
+    return false;
+  }
   switch (obj.kind) {
     case irisObjectKindNone:
       return true;
@@ -58,16 +65,21 @@ bool object_is_valid(const IrisObject obj) {
       return list_is_valid(obj.list_variant);
     case irisObjectKindError:
       return error_is_valid(obj.error_variant);
+    case irisObjectKindFunc:
+      return func_is_valid(obj.func_variant);
     default:
-      panic("validity check for object variant isn't defined");
+      iris_check(true, "validity check for object variant isn't defined");
   }
+  __builtin_unreachable();
 }
 
 bool object_is_none(const IrisObject obj) {
+  assert(object_is_valid(obj));
   return obj.kind == irisObjectKindNone;
 }
 
 void object_destroy(IrisObject* obj) {
+  assert(object_is_valid(*obj));
   switch (obj->kind) {
     case irisObjectKindNone:
       // panic("attempt to destroy None"); // todo: should it just silently escape?
@@ -92,6 +104,7 @@ void object_destroy(IrisObject* obj) {
 }
 
 void object_print_repr(const IrisObject obj, bool newline) {
+  assert(object_is_valid(obj));
   switch (obj.kind) {
     case irisObjectKindNone:
       (void)fputs("None", stdout);

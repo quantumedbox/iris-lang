@@ -6,7 +6,7 @@
 
 IrisFunc func_from_cfunc(IrisFuncPrototype cfunc) {
   assert(pointer_is_valid(cfunc));
-  IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc, .is_macro = false };
+  IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc /*, .is_macro = false*/ };
   return result;
 }
 
@@ -55,6 +55,8 @@ void func_move(IrisFunc* func) {
   // func->cfunc = NULL;
 }
 
+// todo: provide function 'database' for retrieving special data
+//       docstring also should be stored outside
 void func_print_repr(const IrisFunc func, bool newline) {
   assert(func_is_valid(func));
   (void)fprintf(stdout, "<callable>");

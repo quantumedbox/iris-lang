@@ -16,7 +16,6 @@
 // todo: implementation of 0 length strings is awful, should redo it
 
 #include "types/types.h"
-// #include "types/string.h"
 #include "memory.h"
 #include "utils.h"
 
@@ -55,9 +54,7 @@ IrisString string_from_chars(const char* chars) {
     .data = iris_alloc(len, char),
     .len = len
   };
-  for (size_t i = 0ULL; i < len; i++) {
-    result.data[i] = chars[i];
-  }
+  memcpy(result.data, chars, len);
   string_hash(&result);
   return result;
 }

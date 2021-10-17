@@ -25,7 +25,7 @@ typedef enum {
 */
 typedef struct _IrisFunc {
   IrisFuncType type;
-  bool is_macro;                // todo: could be embedded in type field, but will make things messy
+  bool is_macro;                // todo: could be embedded in type field, but will make things messier
   union {
     IrisFuncPrototype cfunc;
     struct _IrisList codedata;  // todo

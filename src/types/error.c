@@ -3,6 +3,7 @@
 #include "error.h"
 #include "types/types.h"
 
+// todo: make it array instead as type do correlate with indexes
 static IrisDict error_desc = {0};
 static unsigned int error_enum = IRIS_USER_ERRORS;
 

@@ -3,7 +3,7 @@
 
 #include "types/types.h"
 
-void init_eval(void);
+void init_eval_module(void);
 
 const IrisDict* get_standard_scope_view(void);
 
@@ -16,11 +16,11 @@ void enter_repl(void);
 */
 void eval(const IrisList*, const IrisDict* scope, bool in_repl);
 
-IrisObject eval_object(const IrisObject, const IrisDict* scope);
+const IrisObject eval_object(const IrisObject, const IrisDict* scope);
 
 /*
-  @brief Get default scope for evaluation
+  @brief Construct default scope for evaluation
 */
-IrisDict scope_default(void);
+// IrisDict scope_default(void);
 
 #endif

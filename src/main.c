@@ -6,7 +6,7 @@
 
 int main(int argc, const char** argv) {
   init_error_module();
-  init_eval();
+  init_eval_module();
   enter_repl();
   // IrisString source = string_from_file(stdin);
   // if (!string_is_empty(source)) {
