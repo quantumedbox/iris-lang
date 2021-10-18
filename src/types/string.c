@@ -49,9 +49,12 @@ void string_hash(IrisString* str) {
 
 IrisString string_copy(const IrisString str) {
   assert(string_is_valid(str));
-  IrisString result = { .len = str.len };
-  result.data = iris_alloc(str.len, char);
-  memcpy(&result.data, &str.data, str.len * sizeof(char));
+  IrisString result = {
+    .data = iris_alloc(str.len, char),
+    .len = str.len,
+    .hash = str.hash
+  };
+  memcpy(result.data, str.data, str.len * sizeof(char));
   return result;
 }
 

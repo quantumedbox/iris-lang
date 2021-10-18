@@ -27,6 +27,12 @@ struct _IrisObject object_copy(const struct _IrisObject obj) {
       return refcell_to_object(refcell_copy(obj.refcell_variant));
     case irisObjectKindList:
       return list_to_object(list_copy(obj.list_variant));
+    case irisObjectKindDict:
+      return dict_to_object(dict_copy(obj.dict_variant));
+    case irisObjectKindFunc:
+      return func_to_object(func_copy(obj.func_variant));
+    case irisObjectKindError:
+      return error_to_object(error_copy(obj.error_variant));
     default:
       panic("copy behavior for object variant isn't defined");
   }

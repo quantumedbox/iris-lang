@@ -16,18 +16,28 @@ IrisFunc func_macro_from_cfunc(IrisFuncPrototype cfunc) {
   return result;
 }
 
+IrisFunc func_copy(const IrisFunc func) {
+  assert(func_is_valid(func));
+  switch (func.type) {
+    case irisFuncTypeC:
+      return func;
+    default:
+      panic("undefined behavior for copying function type");
+  }
+}
+
 IrisObject func_call(const IrisFunc func, const IrisObject* args, size_t arg_count) {
-  iris_check(func_is_valid(func), "attempt to call ill-formed function object");
-  iris_check(((arg_count > 0ULL) && pointer_is_valid(args)) || (arg_count == 0ULL /*&& !pointer_is_valid(args)*/), "ill-formed call arguments");
+  assert(func_is_valid(func));
+  assert(((arg_count > 0ULL) && pointer_is_valid(args)) || (arg_count == 0ULL /*&& !pointer_is_valid(args)*/));
   IrisObject result = {0};
   switch (func.type) {
     case irisFuncTypeC:
       result = func.cfunc(args, arg_count);
       break;
     default:
-      assert(false); // unreachable, func_is_valid should cover such cases
-  } 
-  iris_check(object_is_valid(result), "function returned ill-formed object");
+      panic("unsupported function type"); // unreachable, func_is_valid should cover such cases
+  }
+  assert(object_is_valid(result));
   return result;
 }
 

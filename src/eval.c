@@ -5,6 +5,7 @@
 
 // todo: (help)
 // todo: (doc <symbol>)
+// todo: (for [binding list [binding list ...]] body) -- iteration over list
 
 #include "core/cimpl.c"
 
@@ -56,6 +57,8 @@ IrisDict scope_default(IrisList argv_list) {
   push_to_scope(func_macro_from_cfunc,  quote,        "quote");
   push_to_scope(func_from_cfunc,        echo,         "echo");
   push_to_scope(func_from_cfunc,        quit,         "quit");
+  push_to_scope(func_from_cfunc,        first,        "first");
+  // push_to_scope(func_from_cfunc,        rest,         "rest");
   push_to_scope(func_from_cfunc,        add,          "+");
   push_to_scope(func_from_cfunc,        sub,          "-");
   push_to_scope(func_from_cfunc,        reduce,       "reduce");
@@ -73,10 +76,6 @@ void eval_module_init(int argc, const char* argv[]) {
     dict_destroy(&standard_scope);
     warning("reconstruction of default scope dictionary");
   }
-  // if (list_is_valid(argv_list) && !list_is_empty(argv_list)) {
-  //   list_destroy(&argv_list);
-  //   warning("reconstruction of argv list");
-  // }
   IrisList argv_list = list_new();
   for (int i = 0; i < argc; i++) {
     IrisString str = string_from_chars(argv[i]);
@@ -92,11 +91,6 @@ void eval_module_deinit(void) {
   } else {
     panic("default scope dictionary is ill-formed");
   }
-  // if (list_is_valid(argv_list)) {
-  //   list_destroy(&argv_list);
-  // } else {
-  //   panic("argv list is ill-formed");
-  // }
 }
 
 const IrisDict* get_standard_scope_view(void) {
@@ -127,34 +121,35 @@ void enter_repl(void) {
 // todo: it should be guaranteed that evaluation doesn't mutate anything in terms of passed scopes and objects
 IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
   assert(obj.kind < N_OBJECT_KINDS && obj.kind >= 0);
-  // non-empty lists are evaluated, you need to place them in quote list to get them as they are
   if ((obj.kind == irisObjectKindList) && (obj.list_variant.len > 0ULL)) {
+    // non-empty lists are evaluated, you need to place them in quote list to get them as they are
     assert(object_is_valid(obj.list_variant.items[0]));
     IrisObject callable = eval_object(obj.list_variant.items[0], scope);
     assert(object_is_valid(callable));
     if (callable.kind == irisObjectKindError) {
+      // errors returned immediately
       return callable;
-    }
-    if (callable.kind != irisObjectKindFunc) {
+    } else if (callable.kind != irisObjectKindFunc) {
+      // leading item should be of func type
       return error_to_object(error_from_chars(irisErrorTypeError, "can't call non-function object"));
     }
-    // if function is macro - don't evaluate its parameters and pass as is
     if (callable.func_variant.is_macro) {
+      // if function is macro - don't evaluate its parameters and pass as is
       IrisObject result = func_call(callable.func_variant, &obj.list_variant.items[1], obj.list_variant.len - 1ULL);
       object_destroy(&callable);
       return result;
-    // otherwise evaluate the parameters
     } else {
+      // otherwise evaluate the parameters
       IrisObject argument_stack[IRIS_ARGUMENT_STACK_LIMIT];
-      for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
-        assert(object_is_valid(obj.list_variant.items[i]));
-        argument_stack[i - 1ULL] = eval_object(obj.list_variant.items[i], scope);
-        assert(object_is_valid(argument_stack[i - 1ULL]));
-        if (argument_stack[i - 1ULL].kind == irisObjectKindError) {
-          for (size_t free_i = 0ULL; free_i < i - 1ULL; free_i++) {
+      for (size_t i = 0ULL; i < obj.list_variant.len - 1ULL; i++) {
+        assert(object_is_valid(obj.list_variant.items[i + 1ULL]));
+        argument_stack[i] = eval_object(obj.list_variant.items[i + 1ULL], scope);
+        assert(object_is_valid(argument_stack[i]));
+        if (argument_stack[i].kind == irisObjectKindError) {
+          for (size_t free_i = 0ULL; free_i <= i; free_i++) {
             object_destroy(&argument_stack[free_i]);
           }
-          return argument_stack[i - 1ULL];
+          return argument_stack[i];
         }
       }
       IrisObject result = func_call(
@@ -162,22 +157,30 @@ IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
         obj.list_variant.len > 1 ? &argument_stack[0] : NULL,
         obj.list_variant.len - 1ULL);
       object_destroy(&callable);
+      for (size_t free_i = 0ULL; free_i < obj.list_variant.len - 1ULL; free_i++) {
+        object_destroy(&argument_stack[free_i]);
+      }
       return result;
     }
   } else if (obj.kind == irisObjectKindString) {
+    // strings are used for lookup
     assert(string_is_valid(obj.string_variant));
     if (dict_has(*scope, obj.string_variant.hash)) {
-      const IrisObject* lookup = dict_get_view(scope, obj.string_variant.hash);
-      assert(object_is_valid(*lookup));
-      return *lookup;
+      IrisObject lookup = dict_get(scope, obj.string_variant.hash);
+      assert(object_is_valid(lookup));
+      return lookup;
     } else {
       return error_to_object(error_from_chars(irisErrorNameError, "unknown symbol"));
     }
   } else {
-    return obj;
+    // can only return copies as ownership of object is on caller
+    IrisObject copy = object_copy(obj);
+    return copy;
   }
 }
 
+// todo: return last evaluated object? as it acts like body
+// todo: rename to "eval_list"
 void eval(const IrisList* list, const IrisDict* scope, bool in_repl) {
   assert(list_is_valid(*list) && dict_is_valid(*scope));
   for (size_t i = 0ULL; i < list->len; i++) {

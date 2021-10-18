@@ -42,6 +42,7 @@ void deinit_error_module(void);
 IrisError error_new(IrisErrorType);
 IrisError error_from_chars(IrisErrorType, const char*);
 IrisError error_from_string(IrisErrorType, struct _IrisString*);
+IrisError error_copy(const IrisError);
 bool error_is_valid(const IrisError);
 void error_destroy(IrisError*);
 void error_move(IrisError*);

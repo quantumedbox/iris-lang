@@ -47,6 +47,14 @@ IrisError error_from_string(IrisErrorType type, IrisString* str) {
   return result;
 }
 
+IrisError error_copy(const IrisError err) {
+  IrisError result = { .type = err.type };
+  if (!string_is_empty(err.msg)) {
+    result.msg = string_copy(err.msg);
+  }
+  return result;
+}
+
 // todo: should errors be valid?
 //       we should decide on what 'valid' actually means in detail
 bool error_is_valid(const IrisError err) {

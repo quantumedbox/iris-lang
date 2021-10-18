@@ -14,6 +14,9 @@
 // todo: they're bodged as hell, should standardize the way they're implemented
 // todo: those things should be generated, not written manually. at least huge portion of it
 
+// In-Iris alternative:
+// >>> (defn metrics []
+//        (c-call "metrics"))
 /*
   @brief    Calls built-in memory metrics function
   @variants (0)
@@ -23,6 +26,9 @@ static IrisObject metrics(const IrisObject* args, size_t arg_count) {
   return (IrisObject){0}; // None
 }
 
+// In-Iris alternative:
+// >>> (defmacro quote [arg]
+//        (copy arg)) // should it be copy? compiler should decide by itself when copy is necessary
 /*
   @brief    Yields passed argument as it is, required for escaping evaluation
   @variants (1: any)
@@ -43,7 +49,7 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
   @variants (0) (1: int)
 */
 noreturn static IrisObject quit(const IrisObject* args, size_t arg_count) {
-  iris_check(arg_count <= 1ULL, "invalid argument count for exit"); // should it not hard crush, but return error result?
+  iris_check(arg_count <= 1ULL, "invalid argument count"); // should it not hard crush, but return error result?
   if (arg_count == 0ULL) {
     exit(0);
   } else {
@@ -67,6 +73,35 @@ static IrisObject echo(const IrisObject* args, size_t arg_count) {
   }
   if (arg_count != 0ULL) (void)fputc('\n', stdout);
   return (IrisObject){0}; // None
+}
+
+static IrisObject first(const IrisObject* args, size_t arg_count) {
+  if (arg_count != 1ULL) {
+    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+  }
+  if (args[0].kind != irisObjectKindList) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "argument of first should be list"));
+  }
+  if (args[0].list_variant.len != 0) {
+    IrisObject copy = object_copy(args[0].list_variant.items[0]);
+    return copy;
+  } else {
+    return list_to_object((IrisList){0}); // empty list
+  }
+}
+
+static IrisObject rest(const IrisObject* args, size_t arg_count) {
+  if (arg_count != 1ULL) {
+    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+  }
+  if (args[0].kind != irisObjectKindList) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "argument of first should be list"));
+  }
+  if (args[0].list_variant.len != 0) {
+    // todo: list slice copying
+  } else {
+    return list_to_object((IrisList){0});
+  }
 }
 
 // todo: it may leak memory if body tries to return allocated object

@@ -23,14 +23,14 @@ const IrisObject* refcell_view(const IrisRefCell ref) {
 
 IrisRefCell refcell_copy(const IrisRefCell ref) {
   assert(refcell_is_valid(ref));
-  (*ref.counter)++;
+  *ref.counter = *ref.counter + 1U;
   return ref;
 }
 
 void refcell_destroy(IrisRefCell* ref) {
   assert(refcell_is_valid(*ref));
   assert(*ref->counter != 0U);
-  (*ref->counter)--;
+  *ref->counter = *ref->counter - 1U;
   if (*ref->counter == 0U) {
     object_destroy(ref->ref);
     iris_free(ref->ref);

@@ -19,6 +19,7 @@ typedef struct _IrisDict {
 } IrisDict;
 
 IrisDict dict_new(void);
+IrisDict dict_copy(const IrisDict);
 void dict_push_object(IrisDict*, size_t key, struct _IrisObject*); // todo: we probably should require IrisObject for hashing instead of key directly
 void dict_push_string(IrisDict*, struct _IrisString*);
 void dict_push_func(IrisDict*, struct _IrisString*, struct _IrisFunc*); // todo: why does it require string?
@@ -27,8 +28,16 @@ void dict_erase_by_key(IrisDict*, size_t key);
 bool dict_has(const IrisDict, size_t key);
 
 /*
+  @brief  Get copy of object in dictionary
+  @warn   Will panic if there's no item with given key, check dict_has() before calling
+*/
+struct _IrisObject dict_get(const IrisDict*, size_t key);
+
+// todo: should be strongly discouraged even in implementation of interpreter
+/*
   @brief  Get reference to object in dictionary
-  @warn   Returned reference is valid until the next mutation is dict
+  @warn   Returned reference is valid until the next mutation in dict
+          Pointer should only be valid inside of function that called this, no passing it around
           You should only use this after the dictionary was formed and will not mutate
   @warn   Will panic if there's no item with given key, check dict_has() before calling
 */
@@ -38,5 +47,7 @@ bool dict_is_valid(const IrisDict);
 void dict_destroy(IrisDict*);
 void dict_move(IrisDict*);
 void dict_print_repr(const IrisDict, bool newline);
+
+#define dict_to_object(dict) (struct _IrisObject){ .kind = irisObjectKindDict, .dict_variant = dict }
 
 #endif

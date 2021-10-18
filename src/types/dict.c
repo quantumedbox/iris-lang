@@ -32,6 +32,24 @@ IrisDict dict_new() {
   return result;
 }
 
+IrisDict dict_copy(const IrisDict dict) {
+  assert(dict_is_valid(dict));
+  IrisDict result = {
+    .buckets = iris_alloc(dict.cap, IrisDictBucket),
+    .cap = dict.cap,
+    .card = dict.card,
+  };
+  for (size_t b = 0ULL; b < dict.cap; b++) {
+    result.buckets[b].pairs = iris_alloc(dict.buckets[b].len, IrisDictPair);
+    result.buckets[b].len = dict.buckets[b].len;
+    for (size_t p = 0ULL; p < dict.buckets[b].len; p++) {
+      result.buckets[b].pairs[p].item = object_copy(dict.buckets[b].pairs[p].item);
+      result.buckets[b].pairs[p].key = dict.buckets[b].pairs[p].key;
+    }
+  }
+  return result;
+}
+
 // todo: we shouldn't have two versions of funcs, they make maintaining harder
 __forceinline void dict_free_buckets(IrisDictBucket* buckets, size_t len) {
   assert(pointer_is_valid(buckets));
@@ -186,6 +204,18 @@ bool dict_has(const IrisDict dict, size_t key) {
     }
   }
   return false;
+}
+
+struct _IrisObject dict_get(const IrisDict* dict, size_t key) {
+  iris_check(dict_has(*dict, key), "attempt to get copy of nonexistent key in dict"); // todo: could be inlined into the end of for
+  size_t idx = key % dict->cap;
+  for (size_t i = 0; i < dict->buckets[idx].len; i++) {
+    if (dict->buckets[idx].pairs[i].key == key) {
+      IrisObject copy = object_copy(dict->buckets[idx].pairs[i].item);
+      return copy;
+    }
+  }
+  __builtin_unreachable();
 }
 
 // todo: pass dict by value?

@@ -45,11 +45,14 @@ IrisFunc func_from_cfunc(IrisFuncPrototype);
 */
 IrisFunc func_macro_from_cfunc(IrisFuncPrototype);
 
+IrisFunc func_copy(const IrisFunc);
 struct _IrisObject func_call(const IrisFunc, const struct _IrisObject*, size_t);
 bool func_is_valid(const IrisFunc);
 void func_destroy(IrisFunc*);
 void func_move(IrisFunc*);
 void func_print_repr(const IrisFunc, bool newline);
 void func_print_internal(const IrisFunc, bool newline);
+
+#define func_to_object(func) (struct _IrisObject){ .kind = irisObjectKindFunc, .func_variant = func }
 
 #endif
