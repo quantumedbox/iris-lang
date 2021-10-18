@@ -32,7 +32,8 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
   assert(pointer_is_valid(args));
-  return args[0];
+  IrisObject quoted_copy = object_copy(args[0]);
+  return quoted_copy;
 }
 
 // todo: should we not declare it as noreturn to have ability to return errors?

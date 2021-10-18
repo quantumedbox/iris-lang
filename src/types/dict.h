@@ -30,7 +30,7 @@ bool dict_has(const IrisDict, size_t key);
   @brief  Get reference to object in dictionary
   @warn   Returned reference is valid until the next mutation is dict
           You should only use this after the dictionary was formed and will not mutate
-  @warn   Will panic if there's no item with given key
+  @warn   Will panic if there's no item with given key, check dict_has() before calling
 */
 const struct _IrisObject* dict_get_view(const IrisDict*, size_t key);
 

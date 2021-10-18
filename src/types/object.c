@@ -23,6 +23,10 @@ struct _IrisObject object_copy(const struct _IrisObject obj) {
       return (IrisObject){ .kind = irisObjectKindFloat, .int_variant = obj.float_variant };
     case irisObjectKindString:
       return string_to_object(string_copy(obj.string_variant));
+    case irisObjectKindRefCell:
+      return refcell_to_object(refcell_copy(obj.refcell_variant));
+    case irisObjectKindList:
+      return list_to_object(list_copy(obj.list_variant));
     default:
       panic("copy behavior for object variant isn't defined");
   }
@@ -41,6 +45,9 @@ void object_move(IrisObject* obj) {
       break;
     case irisObjectKindDict:
       dict_move(&obj->dict_variant);
+      break;
+    case irisObjectKindRefCell:
+      refcell_move(&obj->refcell_variant);
       break;
     default:
       panic("move behavior for object variant isn't defined");
@@ -81,6 +88,8 @@ bool object_is_valid(const IrisObject obj) {
       return error_is_valid(obj.error_variant);
     case irisObjectKindFunc:
       return func_is_valid(obj.func_variant);
+    case irisObjectKindRefCell:
+      return refcell_is_valid(obj.refcell_variant);
     default:
       panic("validity check for object variant isn't defined");
   }
@@ -111,6 +120,9 @@ void object_destroy(IrisObject* obj) {
       break;
     case irisObjectKindError:
       error_destroy(&obj->error_variant);
+      break;
+    case irisObjectKindRefCell:
+      refcell_destroy(&obj->refcell_variant);
       break;
     default:
       panic("destroy behavior for object variant isn't defined");
@@ -147,6 +159,9 @@ void object_print(const IrisObject obj, bool newline) {
     case irisObjectKindError:
       error_print_repr(obj.error_variant, newline);
       break;
+    case irisObjectKindRefCell:
+      refcell_print(obj.refcell_variant, newline);
+      break;
     default:
       panic("printing behaviour for obj type isn't defined");
   }
@@ -181,6 +196,9 @@ void object_print_repr(const IrisObject obj, bool newline) {
       break;
     case irisObjectKindError:
       error_print_repr(obj.error_variant, newline);
+      break;
+    case irisObjectKindRefCell:
+      refcell_print_repr(obj.refcell_variant, newline);
       break;
     default:
       panic("printing behaviour for obj type isn't defined");

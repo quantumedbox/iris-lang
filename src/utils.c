@@ -5,6 +5,7 @@
 
 #include "utils.h"
 
+#ifndef IRIS_NO_CHECKS
 /*
   @brief  Should be used for runtime checking where cause of crush is user data, not internal state
 */
@@ -19,6 +20,7 @@ void iris_check_warn(bool status, const char* msg) {
     warning(msg);
   }
 }
+#endif
 
 noreturn void errno_panic() {
   (void)fprintf(stderr, "program panicked with %d errno value\n", errno);

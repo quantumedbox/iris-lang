@@ -203,6 +203,9 @@ IrisList nurture(IrisString str) {
         continue;
       }
       case '\'': {
+        if (parse_next_as_quote == true) {
+          warning("multiple quote simbols");
+        }
         parse_next_as_quote = true;
         str_pos++;
         continue;

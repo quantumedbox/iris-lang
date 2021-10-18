@@ -6,13 +6,13 @@
 #include "utils.h"
 #include "memory.h"
 
-#define LIST_PREALLOC 4U
-static_assert(LIST_PREALLOC > 0U, "list preallocation shouldn't be 0");
+#define LIST_GROW_N 4U
+static_assert(LIST_GROW_N > 0U, "list item grow amount shouldn't be 0");
 
 IrisList list_new() {
   IrisList result = {0};
-  result.cap = LIST_PREALLOC;
-  result.items = iris_alloc(LIST_PREALLOC, IrisObject);
+  result.cap = 0;
+  result.items = NULL;
   return result;
 }
 
@@ -24,7 +24,6 @@ IrisList list_copy(const IrisList list) {
     IrisList result = {0};
     for (size_t i = 0; i < list.len; i++) {
       IrisObject item_copy = object_copy(list.items[i]);
-      object_print_repr(item_copy, true);
       list_push_object(&result, &item_copy);
     }
     return result;
@@ -33,7 +32,7 @@ IrisList list_copy(const IrisList list) {
 
 __forceinline void list_grow(IrisList* list) {
   if (list->len == list->cap) {
-    list->cap += LIST_PREALLOC;
+    list->cap += LIST_GROW_N;
     list->items = iris_resize(list->items, list->cap, IrisObject);
   }
 }
@@ -115,7 +114,7 @@ bool list_is_empty(const IrisList list) {
 
 bool list_is_valid(const IrisList list) {
   return (((list.len == 0ULL) && (list.cap == 0ULL)) && !pointer_is_valid(list.items)) ||
-    (pointer_is_valid(list.items) && (list.len <= list.cap));
+    (pointer_is_valid(list.items) && (list.len <= list.cap) && (list.len != 0ULL));
 }
 
 const struct _IrisObject*
@@ -140,7 +139,9 @@ void list_destroy(IrisList* list) {
   for (size_t i = 0ULL; i < list->len; i++) {
     object_destroy(&list->items[i]);
   }
-  iris_free(list->items);
+  if (list->items != NULL) {
+    iris_free(list->items);
+  }
   list_move(list);
 }
 

@@ -51,6 +51,6 @@ void string_print(const IrisString, bool newline);
 void string_print_repr(const IrisString, bool newline);
 void string_print_internal(const IrisString, bool newline);
 
-#define string_to_object(str) (IrisObject){ .kind = irisObjectKindString, .string_variant = str };
+#define string_to_object(str) (struct _IrisObject){ .kind = irisObjectKindString, .string_variant = str }
 
 #endif

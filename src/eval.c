@@ -28,8 +28,7 @@ const char* eval_welcome_msg =
   "| enter (help) or (doc <name>) for getting info\n"
   "| ctrl+c or (quit) for exit\n";
 
-static IrisDict standard_scope;
-static IrisList argv_list; // todo: should be placed in refcell and shared, otherwise it will be destroyed
+static IrisDict standard_scope; // todo: make it as RefCell of Dict? we would need it if we want to go full "meta" and have ability to retrieve it
 
 // todo: problem with exiting the repl
 static volatile bool repl_should_exit = false;
@@ -38,7 +37,7 @@ static volatile bool repl_should_exit = false;
 //   repl_should_exit = true;
 // }
 
-IrisDict scope_default(void) {
+IrisDict scope_default(IrisList argv_list) {
   IrisDict result = dict_new();
 
   #define push_to_scope(m_push_by, m_cfunc, m_symbol) {  \
@@ -47,9 +46,10 @@ IrisDict scope_default(void) {
     dict_push_func(&result, &symbol, &func);                     \
   }
   // argv list
-  IrisList argv_copy = list_copy(argv_list);
-  IrisString argv_name = string_from_chars("argv"); // todo: kinda lame that we have to create strings for that, there should be way to hash chars 
-  dict_push_list(&result, argv_name.hash, &argv_copy);
+  IrisString argv_name = string_from_chars("argv"); // todo: kinda lame that we have to create strings for that, there should be way to hash chars
+  IrisObject argv_list_obj = list_to_object(argv_list);
+  IrisObject argv_list_shared = refcell_to_object(refcell_from_object(&argv_list_obj));
+  dict_push_object(&result, argv_name.hash, &argv_list_shared);
   string_destroy(&argv_name);
 
   // functions
@@ -73,17 +73,17 @@ void eval_module_init(int argc, const char* argv[]) {
     dict_destroy(&standard_scope);
     warning("reconstruction of default scope dictionary");
   }
-  if (list_is_valid(argv_list) && !list_is_empty(argv_list)) {
-    list_destroy(&argv_list);
-    warning("reconstruction of argv list");
-  }
-  argv_list = list_new();
+  // if (list_is_valid(argv_list) && !list_is_empty(argv_list)) {
+  //   list_destroy(&argv_list);
+  //   warning("reconstruction of argv list");
+  // }
+  IrisList argv_list = list_new();
   for (int i = 0; i < argc; i++) {
     IrisString str = string_from_chars(argv[i]);
     assert(string_is_valid(str));
     list_push_string(&argv_list, &str);
   }
-  standard_scope = scope_default();
+  standard_scope = scope_default(argv_list);
 }
 
 void eval_module_deinit(void) {
@@ -92,11 +92,11 @@ void eval_module_deinit(void) {
   } else {
     panic("default scope dictionary is ill-formed");
   }
-  if (list_is_valid(argv_list)) {
-    list_destroy(&argv_list);
-  } else {
-    panic("argv list is ill-formed");
-  }
+  // if (list_is_valid(argv_list)) {
+  //   list_destroy(&argv_list);
+  // } else {
+  //   panic("argv list is ill-formed");
+  // }
 }
 
 const IrisDict* get_standard_scope_view(void) {

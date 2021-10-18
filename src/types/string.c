@@ -23,8 +23,8 @@
 static_assert(STRING_PREALLOC > 0U, "string preallocation shouldn't be 0");
 
 bool string_is_valid(const IrisString str) {
-  return ((str.len == 0ULL && !pointer_is_valid(str.data)) ||
-    (str.len > 0ULL && pointer_is_valid(str.data)));
+  return (str.len == 0ULL && !pointer_is_valid(str.data)) ||
+    (str.len != 0ULL && pointer_is_valid(str.data));
 }
 
 bool string_is_empty(const IrisString str) {
@@ -51,7 +51,7 @@ IrisString string_copy(const IrisString str) {
   assert(string_is_valid(str));
   IrisString result = { .len = str.len };
   result.data = iris_alloc(str.len, char);
-  memcpy(&result.data, &str.data, str.len);
+  memcpy(&result.data, &str.data, str.len * sizeof(char));
   return result;
 }
 
@@ -169,9 +169,9 @@ char string_nth(const IrisString str, size_t idx) {
 void string_destroy(IrisString* str) {
   // currently we set len to inappropriate value for NULL data
   // it's kinda hacky, but works for now 
-  iris_check(string_is_valid(*str), "attempt to double free on string");
+  assert(string_is_valid(*str));
   // it's assumed that check above will stop str->len == 1ULL && str->data == NULL case
-  if (str->len != 0ULL) {
+  if (str->data != NULL) {
     iris_free(str->data);
   }
   string_move(str);
@@ -179,7 +179,7 @@ void string_destroy(IrisString* str) {
 
 void string_move(IrisString* str) {
   str->data = NULL;
-  str->len = 1ULL;
+  str->len = 0ULL;
 }
 
 void string_print(const IrisString str, bool newline) {

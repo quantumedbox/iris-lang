@@ -39,4 +39,6 @@ void list_move(IrisList*);
 void list_print_repr(const IrisList, bool newline);
 void list_print_internal(const IrisList, bool newline);
 
+#define list_to_object(list) (struct _IrisObject){ .kind = irisObjectKindList, .list_variant = list }
+
 #endif

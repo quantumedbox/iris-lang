@@ -22,16 +22,19 @@ struct _IrisList;
 struct _IrisDict;
 struct _IrisFunc;
 struct _IrisError;
+struct _IrisRefCell;
 
 #include "types/list.h"
 #include "types/string.h"
 #include "types/dict.h"
 #include "types/func.h"
 #include "types/error.h"
+#include "types/refcell.h"
 
 typedef enum {
   irisObjectKindNone,
   irisObjectKindError,
+  irisObjectKindRefCell,
   irisObjectKindFunc,
   irisObjectKindInt,
   irisObjectKindFloat,
@@ -53,34 +56,26 @@ typedef struct _IrisObject {
     IrisDict    dict_variant;
     IrisFunc    func_variant;
     IrisError   error_variant;
+    IrisRefCell refcell_variant;
   };
 } IrisObject;
 
-// todo:
-// typedef struct {
-//   // if need for shared ownership arises - one can use reference counter
-//   // it's implemented as object that holds some opaque identity value
-//   // that corresponds with some object in global pool
-//   // identities are untyped, but it's guaranteed that they point to valid IrisObject if validity check says so
-//   size_t identity;
-// } IrisRefCell;
-
-struct _IrisObject object_copy(const struct _IrisObject);
-void object_destroy(struct _IrisObject*);
-void object_move(struct _IrisObject*);
-bool object_is_valid(const struct _IrisObject);
-bool object_is_none(const struct _IrisObject);
-size_t object_hash(const struct _IrisObject);
+IrisObject object_copy(const IrisObject);
+void object_destroy(IrisObject*);
+void object_move(IrisObject*);
+bool object_is_valid(const IrisObject);
+bool object_is_none(const IrisObject);
+size_t object_hash(const IrisObject);
 
 /*
   @brief  Print object as is, without connection to interpreter semantics
 */
-void object_print(const struct _IrisObject, bool newline);
+void object_print(const IrisObject, bool newline);
 
 /*
   @brief  Print representation of object with type hints
           For example, string will have "" markers when printed
 */
-void object_print_repr(const struct _IrisObject, bool newline);
+void object_print_repr(const IrisObject, bool newline);
 
 #endif

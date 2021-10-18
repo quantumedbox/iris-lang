@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-// #include "types/dict.h"
 #include "types/types.h"
 #include "utils.h"
 #include "memory.h"
@@ -131,6 +130,10 @@ void dict_push_object(IrisDict* dict, size_t key, IrisObject* obj) {
     case irisObjectKindFunc:
       dict_push(dict, key, (void*)(&obj->func_variant), IrisFunc, func, irisObjectKindFunc);
       func_move(&obj->func_variant);
+      break;
+    case irisObjectKindRefCell:
+      dict_push(dict, key, (void*)(&obj->refcell_variant), IrisRefCell, refcell, irisObjectKindRefCell);
+      refcell_move(&obj->refcell_variant);
       break;
     default:
       panic("push to dict behavior isn't defined for object variant");
