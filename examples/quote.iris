@@ -3,3 +3,6 @@
 
 ; echo that is encapsulated will not be called
 (echo (quote echo))
+
+; default reader supports ' marker that forces next object to be quoted
+'(1 2 3)

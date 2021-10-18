@@ -6,13 +6,18 @@
 #include "types/types.h"
 #include "utils.h"
 
+// todo: should operate within interpreter and thus have ability to return error objects
 // todo: require spaces between in-list objects
 // todo: store symbols in global string pool
 //       there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
 // todo: floats
-// todo: 'quote lists and other objects
 // todo: remake it in using uint32 as characters for unicode
 //       for that there should be some utility for decoding utf-8, preferably lazily
+// todo: problem with strings in quoted lists:
+//       '(shit) -> ("shit") -- this works, but if you want to have string that contains spaces
+//       '("shit shit") -> '(quote "shit shit") -- will produce quoted string instead
+//       one possible solution is to require quoting by ' and "" strings will be just strings
+//       ' "this" -- but it's not very ergonomic, especially when written as '"this"
 
 #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough, but might be problematic in the future
 

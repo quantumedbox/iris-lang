@@ -84,11 +84,11 @@ void* iris_alloc0_untyped(size_t bytes) {
 
 void iris_metrics_print_repr() {
   #ifdef IRIS_COLLECT_MEMORY_METRICS
-  (void)fputs("-- memory metrics:\n", stdout);
+  (void)fputs("--- memory metrics:\n", stdout);
   (void)fprintf(stdout, "allocations: %llu\n", n_allocations);
   (void)fprintf(stdout, "deallocations: %llu, diff: %lld\n", n_frees, (long long int)n_allocations - (long long int)n_frees);
   (void)fprintf(stdout, "resizes: %llu\n", n_resizes);
   #else
-  (void)fputs("-- memory metrics: no data was collected as collection was turned off on compilation, pass -DIRIS_COLLECT_MEMORY_METRICS to enable\n", stdout);
+  (void)fputs("--- memory metrics: no data was collected as collection was turned off on compilation, pass -DIRIS_COLLECT_MEMORY_METRICS to enable\n", stdout);
   #endif
 }

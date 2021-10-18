@@ -1,5 +1,3 @@
-#include "eval.h"
-
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -7,10 +5,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "eval.h"
 #include "types/types.h"
+#include "reader.h"
 #include "memory.h"
 #include "utils.h"
 
+// todo: prefix with 'cimpl'
 // todo: they're bodged as hell, should standardize the way they're implemented
 // todo: those things should be generated, not written manually. at least huge portion of it
 
@@ -22,8 +23,32 @@
   @variants (0)
 */
 static IrisObject metrics(const IrisObject* args, size_t arg_count) {
-  iris_metrics_print_repr();
+  if (arg_count != 0ULL) {
+    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+  }
+  iris_metrics_print_repr(); // todo: return it as string?
   return (IrisObject){0}; // None
+}
+
+// todo: something more poetic?
+static IrisObject eval(const IrisObject* args, size_t arg_count) {
+  if (arg_count != 1ULL) {
+    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+  }
+  if (args[0].kind != irisObjectKindList) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "argument of eval should be list"));
+  }
+  return eval_list(args[0].list_variant, get_standard_scope_view());
+}
+
+static IrisObject cimpl_nurture(const IrisObject* args, size_t arg_count) {
+  if (arg_count != 1ULL) {
+    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+  }
+  if (args[0].kind != irisObjectKindString) {
+    return error_to_object(error_from_chars(irisErrorTypeError, "argument of nurture should be string"));
+  }
+  return list_to_object(nurture(args[0].string_variant));
 }
 
 // In-Iris alternative:
@@ -86,7 +111,7 @@ static IrisObject first(const IrisObject* args, size_t arg_count) {
     IrisObject copy = object_copy(args[0].list_variant.items[0]);
     return copy;
   } else {
-    return list_to_object((IrisList){0}); // empty list
+    return (IrisObject){0}; // None
   }
 }
 

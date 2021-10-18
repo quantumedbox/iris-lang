@@ -1,7 +1,5 @@
-// todo: define way of signaling errors in functions
-//       we should not use global state errno-like methods, everything should be
-//       encapsulated as much as possible
-//       for that we could probably use some kind of error object that is catched by caller afterwards
+// todo: evaluation of "quote" lists returned from other lists
+//       maybe it could some sort of "delayed" promise? that should be computed on evaluation
 
 // todo: (help)
 // todo: (doc <symbol>)
@@ -12,7 +10,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
-// #include <signal.h>
+#include <signal.h>
 #include <stdlib.h>
 
 #include "eval.h"
@@ -31,20 +29,15 @@ const char* eval_welcome_msg =
 
 static IrisDict standard_scope; // todo: make it as RefCell of Dict? we would need it if we want to go full "meta" and have ability to retrieve it
 
-// todo: problem with exiting the repl
-static volatile bool repl_should_exit = false;
-// static void user_interrupt_handler(int sig) {
-//   (void)sig;
-//   repl_should_exit = true;
-// }
+static volatile bool repl_should_exit = false; // todo: shouldn't be here
 
 IrisDict scope_default(IrisList argv_list) {
   IrisDict result = dict_new();
 
   #define push_to_scope(m_push_by, m_cfunc, m_symbol) {  \
-    IrisFunc func = m_push_by(m_cfunc);                    \
-    IrisString symbol = string_from_chars(m_symbol);             \
-    dict_push_func(&result, &symbol, &func);                     \
+    IrisFunc func = m_push_by(m_cfunc);                  \
+    IrisString symbol = string_from_chars(m_symbol);     \
+    dict_push_func(&result, &symbol, &func);             \
   }
   // argv list
   IrisString argv_name = string_from_chars("argv"); // todo: kinda lame that we have to create strings for that, there should be way to hash chars
@@ -54,11 +47,17 @@ IrisDict scope_default(IrisList argv_list) {
   string_destroy(&argv_name);
 
   // functions
+  push_to_scope(func_from_cfunc,        eval,         "eval");
+  push_to_scope(func_from_cfunc,        cimpl_nurture,"nurture");
   push_to_scope(func_macro_from_cfunc,  quote,        "quote");
   push_to_scope(func_from_cfunc,        echo,         "echo");
+  // push_to_scope(func_from_cfunc,     scope,        "scope"); // todo
+  // push_to_scope(func_from_cfunc,     def,          "def"); // todo
+  // push_to_scope(func_from_cfunc,     defn,         "defn"); // todo
+  // push_to_scope(func_from_cfunc,     defmacro,     "defmacro"); // todo
   push_to_scope(func_from_cfunc,        quit,         "quit");
   push_to_scope(func_from_cfunc,        first,        "first");
-  // push_to_scope(func_from_cfunc,        rest,         "rest");
+  // push_to_scope(func_from_cfunc,     rest,         "rest"); // todo
   push_to_scope(func_from_cfunc,        add,          "+");
   push_to_scope(func_from_cfunc,        sub,          "-");
   push_to_scope(func_from_cfunc,        reduce,       "reduce");
@@ -98,22 +97,28 @@ const IrisDict* get_standard_scope_view(void) {
   return &standard_scope;
 }
 
+static void user_interrupt_handler(int sig) {
+  (void)sig;
+  repl_should_exit = true;
+}
+
 void enter_repl(void) {
-  // if (signal(SIGINT, user_interrupt_handler) == SIG_ERR) {
-  //   iris_check_warn(true, "problem with setting up SIGINT handler for repl");
-  // }
-  // IrisDict scope = scope_default();
+  if (signal(SIGINT, user_interrupt_handler) == SIG_ERR) {
+    iris_check_warn(true, "problem with setting up SIGINT handler for repl");
+  }
   const IrisDict* scope = get_standard_scope_view();
   (void)fprintf(stdout, "%s", eval_welcome_msg);
   while (!repl_should_exit) {
     (void)fprintf(stdout, ">>> ");
     IrisString line = string_from_file_line(stdin);
     IrisList sprout = nurture(line);
-    eval(&sprout, scope, true);
+    IrisObject result = eval_list(sprout, scope);
+    object_print_repr(result, true);
+    object_destroy(&result);
     string_destroy(&line);
     list_destroy(&sprout);
   }
-  // signal(SIGINT, SIG_DFL);
+  signal(SIGINT, SIG_DFL);
 }
 
 // todo: define ways of scope modification
@@ -146,7 +151,7 @@ IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
         argument_stack[i] = eval_object(obj.list_variant.items[i + 1ULL], scope);
         assert(object_is_valid(argument_stack[i]));
         if (argument_stack[i].kind == irisObjectKindError) {
-          for (size_t free_i = 0ULL; free_i <= i; free_i++) {
+          for (size_t free_i = 0ULL; free_i < i; free_i++) {
             object_destroy(&argument_stack[free_i]);
           }
           return argument_stack[i];
@@ -179,15 +184,17 @@ IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
   }
 }
 
-// todo: return last evaluated object? as it acts like body
-// todo: rename to "eval_list"
-void eval(const IrisList* list, const IrisDict* scope, bool in_repl) {
-  assert(list_is_valid(*list) && dict_is_valid(*scope));
-  for (size_t i = 0ULL; i < list->len; i++) {
-    IrisObject result = eval_object(list->items[i], scope);
-    if (in_repl == true) {
-      object_print_repr(result, true);
-      object_destroy(&result);
-    }
+IrisObject eval_list(const IrisList list, const IrisDict* scope) {
+  assert(list_is_valid(list) && dict_is_valid(*scope));
+  if (list.len == 0ULL) {
+    return (IrisObject){0};
   }
+  for (size_t i = 0ULL; i < (list.len - 1ULL); i++) {
+    IrisObject result = eval_object(list.items[i], scope);
+    if (result.kind == irisObjectKindError) {
+      return result;
+    }
+    object_destroy(&result);
+  }
+  return eval_object(list.items[list.len - 1ULL], scope);
 }
