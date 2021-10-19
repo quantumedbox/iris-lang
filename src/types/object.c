@@ -4,16 +4,6 @@
 #include "types/object.h"
 #include "utils.h"
 
-// #include "types/string.h"
-// #include "types/list.h"
-// #include "types/dict.h"
-
-// todo: push_* functions should have specified behaviour
-//       but should they move values or copy them?
-//       we probably need another class of functions for copies specifically
-//       also we need to invalidate original moved objects, so, maybe require passing mutable pointer?
-// todo: implement move_* functions for types
-
 struct _IrisObject object_copy(const struct _IrisObject obj) {
   assert(object_is_valid(obj));
   switch (obj.kind) {
@@ -84,7 +74,7 @@ bool object_is_valid(const IrisObject obj) {
       return true;
     case irisObjectKindInt:
       return true;
-    case irisObjectKindFloat: // todo: check for NaN?
+    case irisObjectKindFloat:
       return true;
     case irisObjectKindString:
       return string_is_valid(obj.string_variant);

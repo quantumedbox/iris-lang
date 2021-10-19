@@ -3,8 +3,6 @@
 
 #include "types/types.h"
 
-// todo: define rules about ownership of objects in evaluation
-
 void eval_module_init(int argc, const char* argv[]);
 void eval_module_deinit(void);
 

@@ -1,10 +1,21 @@
 lisp
 ====
+todo:
+----
+- scoping
+- user defined functions
+- static analysis
+- transpilation
+- interface to define builtin functions via iris syntax
+- function interface to work with builtin types
+- defined type system
+
 goals:
 -----
 - be poetic
 - typed-by-default and high-performant lisp
 - metaprogramming / generalization is key
+- controllable persistence
 - optimizable by design
 - lists as reversed arrays
 - philosophy of dynamic and metamorphic C

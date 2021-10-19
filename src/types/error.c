@@ -55,8 +55,6 @@ IrisError error_copy(const IrisError err) {
   return result;
 }
 
-// todo: should errors be valid?
-//       we should decide on what 'valid' actually means in detail
 bool error_is_valid(const IrisError err) {
   (void)err;
   return true;

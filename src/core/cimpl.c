@@ -11,6 +11,8 @@
 #include "memory.h"
 #include "utils.h"
 
+// todo: resolving symbol in reader might be a better way
+//       also macros have more sense to work on reading and not evaluation
 // todo: prefix with 'cimpl'
 // todo: they're bodged as hell, should standardize the way they're implemented
 // todo: those things should be generated, not written manually. at least huge portion of it
@@ -22,7 +24,7 @@
   @brief    Calls built-in memory metrics function
   @variants (0)
 */
-static IrisObject metrics(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_metrics(const IrisObject* args, size_t arg_count) {
   if (arg_count != 0ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -31,7 +33,7 @@ static IrisObject metrics(const IrisObject* args, size_t arg_count) {
 }
 
 // todo: something more poetic?
-static IrisObject eval(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_eval(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -58,7 +60,7 @@ static IrisObject cimpl_nurture(const IrisObject* args, size_t arg_count) {
   @brief    Yields passed argument as it is, required for escaping evaluation
   @variants (1: any)
 */
-static IrisObject quote(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_quote(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -73,7 +75,7 @@ static IrisObject quote(const IrisObject* args, size_t arg_count) {
   @brief    Exits the application
   @variants (0) (1: int)
 */
-noreturn static IrisObject quit(const IrisObject* args, size_t arg_count) {
+noreturn static IrisObject cimpl_quit(const IrisObject* args, size_t arg_count) {
   iris_check(arg_count <= 1ULL, "invalid argument count"); // should it not hard crush, but return error result?
   if (arg_count == 0ULL) {
     exit(0);
@@ -90,7 +92,7 @@ noreturn static IrisObject quit(const IrisObject* args, size_t arg_count) {
   @brief    Prints repr of objects into stdout
   @variants (n: any)
 */
-static IrisObject echo(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_echo(const IrisObject* args, size_t arg_count) {
   assert(((arg_count != 0ULL) && pointer_is_valid(args)) || (arg_count == 0));
   for (size_t i = 0ULL; i < arg_count; i++) {
     if (i != 0ULL) { (void)fputc(' ', stdout); }
@@ -100,7 +102,7 @@ static IrisObject echo(const IrisObject* args, size_t arg_count) {
   return (IrisObject){0}; // None
 }
 
-static IrisObject first(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_first(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -115,7 +117,7 @@ static IrisObject first(const IrisObject* args, size_t arg_count) {
   }
 }
 
-static IrisObject rest(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_rest(const IrisObject* args, size_t arg_count) {
   if (arg_count != 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -123,7 +125,7 @@ static IrisObject rest(const IrisObject* args, size_t arg_count) {
     return error_to_object(error_from_chars(irisErrorTypeError, "argument of first should be list"));
   }
   if (args[0].list_variant.len != 0) {
-    // todo: list slice copying
+    return list_to_object(list_slice(args[0].list_variant, 1ULL, list_card(args[0].list_variant) - 1ULL));
   } else {
     return list_to_object((IrisList){0});
   }
@@ -134,7 +136,7 @@ static IrisObject rest(const IrisObject* args, size_t arg_count) {
   @brief    Macro for evaluating body n times, results of evaluations are dropped, returns None
   @variants (2: int body)
 */
-static IrisObject repeat_eval(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_repeat_eval(const IrisObject* args, size_t arg_count) {
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   } else if (args[0].kind != irisObjectKindInt) {
@@ -167,7 +169,7 @@ static IrisObject repeat_eval(const IrisObject* args, size_t arg_count) {
   @return   Float -- seconds of execution
   @variants (1: body)
 */
-static IrisObject timeit(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_timeit(const IrisObject* args, size_t arg_count) {
   if (arg_count > 1ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -197,7 +199,7 @@ RETURN:
   @return   Result of last function call
   @variants (2: func list)
 */
-static IrisObject reduce(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_reduce(const IrisObject* args, size_t arg_count) {
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -237,7 +239,7 @@ static IrisObject reduce(const IrisObject* args, size_t arg_count) {
   @return   Float | Int
   @variants (2: (float | int) (float | int))
 */
-static IrisObject add(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_add(const IrisObject* args, size_t arg_count) {
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
@@ -271,7 +273,7 @@ static IrisObject add(const IrisObject* args, size_t arg_count) {
   @return   Float | Int
   @variants (2: (float | int) (float | int))
 */
-static IrisObject sub(const IrisObject* args, size_t arg_count) {
+static IrisObject cimpl_sub(const IrisObject* args, size_t arg_count) {
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }

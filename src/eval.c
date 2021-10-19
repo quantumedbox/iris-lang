@@ -47,29 +47,28 @@ IrisDict scope_default(IrisList argv_list) {
   string_destroy(&argv_name);
 
   // functions
-  push_to_scope(func_from_cfunc,        eval,         "eval");
-  push_to_scope(func_from_cfunc,        cimpl_nurture,"nurture");
-  push_to_scope(func_macro_from_cfunc,  quote,        "quote");
-  push_to_scope(func_from_cfunc,        echo,         "echo");
-  // push_to_scope(func_from_cfunc,     scope,        "scope"); // todo
-  // push_to_scope(func_from_cfunc,     def,          "def"); // todo
-  // push_to_scope(func_from_cfunc,     defn,         "defn"); // todo
-  // push_to_scope(func_from_cfunc,     defmacro,     "defmacro"); // todo
-  push_to_scope(func_from_cfunc,        quit,         "quit");
-  push_to_scope(func_from_cfunc,        first,        "first");
-  // push_to_scope(func_from_cfunc,     rest,         "rest"); // todo
-  push_to_scope(func_from_cfunc,        add,          "+");
-  push_to_scope(func_from_cfunc,        sub,          "-");
-  push_to_scope(func_from_cfunc,        reduce,       "reduce");
-  push_to_scope(func_macro_from_cfunc,  timeit,       "timeit");
-  push_to_scope(func_macro_from_cfunc,  repeat_eval,  "repeat-eval");
-  push_to_scope(func_from_cfunc,        metrics,      "metrics");
+  push_to_scope(func_from_cfunc,        cimpl_eval,         "eval");
+  push_to_scope(func_from_cfunc,        cimpl_nurture,      "nurture");
+  push_to_scope(func_macro_from_cfunc,  cimpl_quote,        "quote");
+  push_to_scope(func_from_cfunc,        cimpl_echo,         "echo");
+  // push_to_scope(func_from_cfunc,     cimpl_scope,        "scope"); // todo
+  // push_to_scope(func_from_cfunc,     cimpl_def,          "def"); // todo
+  // push_to_scope(func_from_cfunc,     cimpl_defn,         "defn"); // todo
+  // push_to_scope(func_from_cfunc,     cimpl_defmacro,     "defmacro"); // todo
+  push_to_scope(func_from_cfunc,        cimpl_quit,         "quit");
+  push_to_scope(func_from_cfunc,        cimpl_first,        "first");
+  push_to_scope(func_from_cfunc,        cimpl_rest,         "rest");
+  push_to_scope(func_from_cfunc,        cimpl_add,          "+");
+  push_to_scope(func_from_cfunc,        cimpl_sub,          "-");
+  push_to_scope(func_from_cfunc,        cimpl_reduce,       "reduce");
+  push_to_scope(func_macro_from_cfunc,  cimpl_timeit,       "timeit");
+  push_to_scope(func_macro_from_cfunc,  cimpl_repeat_eval,  "repeat-eval");
+  push_to_scope(func_from_cfunc,        cimpl_metrics,      "metrics");
 
   return result;
   #undef push_to_scope
 }
 
-// todo: standard shouldn't be in eval maybe?
 void eval_module_init(int argc, const char* argv[]) {
   if (dict_is_valid(standard_scope)) {
     dict_destroy(&standard_scope);
@@ -102,6 +101,8 @@ static void user_interrupt_handler(int sig) {
   repl_should_exit = true;
 }
 
+// todo: repl stack that allows nesting
+//       only one interpreter instance should be active in repl mode at the same time
 void enter_repl(void) {
   if (signal(SIGINT, user_interrupt_handler) == SIG_ERR) {
     iris_check_warn(true, "problem with setting up SIGINT handler for repl");
@@ -123,7 +124,6 @@ void enter_repl(void) {
 
 // todo: define ways of scope modification
 //       it could probably be done by special dicts that have back references to scope from which they inherit
-// todo: it should be guaranteed that evaluation doesn't mutate anything in terms of passed scopes and objects
 IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
   assert(obj.kind < N_OBJECT_KINDS && obj.kind >= 0);
   if ((obj.kind == irisObjectKindList) && (obj.list_variant.len > 0ULL)) {

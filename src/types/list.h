@@ -32,7 +32,12 @@ bool list_is_valid(const IrisList);
           And no way to use immutable IrisList for getting the slice
           Also caller supposed to get length of slice from function and not calculate it by themself
 */
-const struct _IrisObject* list_view_slice(const IrisList*, size_t* resulting_slice_len, size_t l, size_t h);
+// const struct _IrisObject* list_view_slice(const IrisList, size_t* resulting_slice_len, size_t l, size_t h);
+
+/*
+  @brief  Get list consisting of copy of consequent items in list
+*/
+struct _IrisList list_slice(const IrisList, size_t l, size_t h);
 
 void list_destroy(IrisList*);
 void list_move(IrisList*);

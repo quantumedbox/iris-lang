@@ -72,37 +72,29 @@ static bool parse_int(IrisObject* target, size_t* parsed, const char* slice, con
   assert(slice <= limit);
   assert(target != NULL);
   assert(parsed != NULL);
-  #define parse_int_impl(m_op) \
-    while (limit >= ptr) {     \
-    if ((*ptr >= '0') && (*ptr <= '9')) { \
-      int check = result.int_variant;     \
-      result.int_variant = result.int_variant * 10 m_op (*ptr - '0'); \
-      iris_check(check < result.int_variant, "can't contain given value in iris integer object (overflow detected)"); \
-      ptr++; \
-    } else { \
-      break; \
-    } \
-  }
-  IrisObject result = { .kind = irisObjectKindInt };
   const char* ptr = slice;
   if (*ptr == '0') {
-    result.int_variant = 0;
-    *target = result;
+    *target = (IrisObject){ .kind = irisObjectKindInt, .int_variant = 0 };
     *parsed = 1ULL;
     return true;
-  } else if (*ptr == '-') {
-    if ((*ptr >= '1') && (*ptr <= '9')) {
-      IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
-      ptr++;
-      parse_int_impl(-);
-      *target = result;
-      *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
-      return true;
-    }
-  } else if ((*ptr >= '1') && (*ptr <= '9')) {
+  }
+  bool is_negative = false;
+  if (*ptr == '-') {
+    is_negative = true;
+    ptr++;
+  }
+  if ((*ptr >= '1') && (*ptr <= '9')) {
     IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
     ptr++;
-    parse_int_impl(+);
+    while ((limit >= ptr) && (*ptr >= '0') && (*ptr <= '9')) {
+      int check = result.int_variant;
+      result.int_variant = result.int_variant * 10 + (*ptr - '0');
+      iris_check(check < result.int_variant, "can't contain given value in iris integer object"); // todo: lower bound truncates incorrectly
+      ptr++;
+    }
+    if (is_negative) {
+      result.int_variant = 0 - result.int_variant;
+    }
     *target = result;
     *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
     return true;
@@ -168,6 +160,41 @@ static bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* 
   return false;
 }
 
+// todo: what about requiring only two quotes?
+static bool parse_raw_marker(const char* slice, const char* limit) {
+  if ((slice + 2) >= limit) {
+    return false;
+  } else if ((*slice == '\"') && (*(slice + 1) == '\"') && (*(slice + 2) == '\"')) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+static bool parse_marked_raw_symbol(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
+  assert(slice <= limit);
+  assert(target != NULL);
+  assert(parsed != NULL);
+  const char* ptr = slice;
+  if (parse_raw_marker(ptr, limit)) {
+    IrisObject result = { .kind = irisObjectKindString };
+    ptr++;
+    while (limit > ptr) {
+      if (!parse_raw_marker(ptr, limit)) {
+        ptr++;
+      } else {
+        result.string_variant = string_from_view(slice + 3, ptr);
+        *target = result;
+        *parsed = result.string_variant.len + 6LU;
+        return true;
+      }
+    }
+    panic("trailing unclosed string");
+  }
+  return false;
+}
+
+// todo: redo
 IrisList nurture(IrisString str) {
   IrisList result = list_new(); // top-most lists are part of it
   IrisList* stack[LIST_RECURSION_PARSE_LIMIT]; // points at lists that aren't finalized yet
@@ -242,7 +269,8 @@ IrisList nurture(IrisString str) {
             list_push_int(stack[stack_pos], obj_parsed.int_variant);
           }
           str_pos += chars_parsed;
-        } else if (parse_marked_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
+        } else if (parse_marked_raw_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len]) ||
+            parse_marked_symbol(&obj_parsed, &chars_parsed, &str.data[str_pos], &str.data[str.len])) {
           if (parse_next_as_quote) {
             parse_next_as_quote = false;
           }

@@ -60,7 +60,7 @@ __forceinline void dict_free_buckets(IrisDictBucket* buckets, size_t len) {
     for (size_t p = 0ULL; p < buckets[b].len; p++) {
       object_destroy(&buckets[b].pairs[p].item);
     }
-    if (buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) {
+    if (buckets[b].len > 0) {
       iris_free(buckets[b].pairs);
     }
   }
@@ -76,7 +76,7 @@ __forceinline void dict_free_buckets_after_move(IrisDictBucket* buckets, size_t 
     assert((buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) ||
       (buckets[b].len == 0 && !pointer_is_valid(buckets[b].pairs))
     );
-    if (buckets[b].len > 0 && pointer_is_valid(buckets[b].pairs)) {
+    if (buckets[b].len > 0) {
       iris_free(buckets[b].pairs);
     }
   }
@@ -84,10 +84,7 @@ __forceinline void dict_free_buckets_after_move(IrisDictBucket* buckets, size_t 
 }
 
 __forceinline void
-dict_move_pair(IrisDictBucket* buckets,
-               size_t len,
-               IrisDictPair pair)
-{
+dict_move_pair(IrisDictBucket* buckets, size_t len, IrisDictPair pair) {
   size_t idx = pair.key % len;
   buckets[idx].pairs = iris_resize(buckets[idx].pairs, buckets[idx].len + 1ULL, IrisDictPair);
   buckets[idx].pairs[buckets[idx].len] = pair;
@@ -118,24 +115,24 @@ __forceinline void dict_grow(IrisDict* dict) {
 */
 #define dict_push(m_dict, m_hash_key, m_item, m_type, m_variant, m_kind) {                              \
   dict_grow(m_dict);                                                                                    \
-  size_t dict_push_pair_idx = (m_hash_key) % m_dict->cap;                                               \
-  for (size_t i = 0; i < m_dict->buckets[dict_push_pair_idx].len; i++) {                                \
-    if (m_dict->buckets[dict_push_pair_idx].pairs[i].key == (m_hash_key)) {                             \
-      m_variant##_destroy(&m_dict->buckets[dict_push_pair_idx].pairs[i].item.m_variant##_variant);      \
-      m_dict->buckets[dict_push_pair_idx].pairs[i].item.kind = m_kind;                                  \
-      m_dict->buckets[dict_push_pair_idx].pairs[i].item.m_variant##_variant = *(m_type*)m_item;         \
+  size_t pair_idx = (m_hash_key) % m_dict->cap;                                                         \
+  for (size_t i = 0; i < m_dict->buckets[pair_idx].len; i++) {                                          \
+    if (m_dict->buckets[pair_idx].pairs[i].key == (m_hash_key)) {                                       \
+      m_variant##_destroy(&m_dict->buckets[pair_idx].pairs[i].item.m_variant##_variant);                \
+      m_dict->buckets[pair_idx].pairs[i].item.kind = m_kind;                                            \
+      m_dict->buckets[pair_idx].pairs[i].item.m_variant##_variant = *(m_type*)m_item;                   \
       return;                                                                                           \
     }                                                                                                   \
   }                                                                                                     \
-  m_dict->buckets[dict_push_pair_idx].pairs = iris_resize(                                              \
-    m_dict->buckets[dict_push_pair_idx].pairs,                                                          \
-    m_dict->buckets[dict_push_pair_idx].len + 1ULL,                                                     \
+  m_dict->buckets[pair_idx].pairs = iris_resize(                                                        \
+    m_dict->buckets[pair_idx].pairs,                                                                    \
+    m_dict->buckets[pair_idx].len + 1ULL,                                                               \
     IrisDictPair                                                                                        \
   );                                                                                                    \
   IrisObject dict_push_obj = { .kind = m_kind, .m_variant##_variant = *(m_type*)m_item };               \
   IrisDictPair dict_push_pair = { .key = (m_hash_key), .item = dict_push_obj };                         \
-  m_dict->buckets[dict_push_pair_idx].pairs[m_dict->buckets[dict_push_pair_idx].len] = dict_push_pair;  \
-  m_dict->buckets[dict_push_pair_idx].len++;                                                            \
+  m_dict->buckets[pair_idx].pairs[m_dict->buckets[pair_idx].len] = dict_push_pair;                      \
+  m_dict->buckets[pair_idx].len++;                                                                      \
   m_dict->card++;                                                                                       \
 }
 

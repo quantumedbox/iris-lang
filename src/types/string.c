@@ -5,15 +5,10 @@
 // todo: it's not very good that header of this file is colliding with <string.h>
 //       we're using it by "types/string.h" for now, but it might be problematic in the future
 
-// todo: it might be better to shift length for it to be that 0 is always erroneous and actual 0 length strings are equal to 1
-//       then string with 4 characters has 5 virtual length
-
 // todo: when reading from file stream there's no way to singal status of reading to caller,
 //       we should consider some way to do so
 
 // todo: should they be cached on creation or only on first hash request?
-
-// todo: implementation of 0 length strings is awful, should redo it
 
 #include "types/types.h"
 #include "memory.h"

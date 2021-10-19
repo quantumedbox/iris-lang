@@ -6,8 +6,8 @@
 #include "utils.h"
 #include "memory.h"
 
-#define LIST_GROW_N 4U
-static_assert(LIST_GROW_N > 0U, "list item grow amount shouldn't be 0");
+#define LIST_GROW_N 4ULL
+static_assert(LIST_GROW_N > 0ULL, "list item grow amount shouldn't be 0");
 
 IrisList list_new() {
   IrisList result = {0};
@@ -117,20 +117,36 @@ bool list_is_valid(const IrisList list) {
     (pointer_is_valid(list.items) && (list.len <= list.cap) && (list.len != 0ULL));
 }
 
-const struct _IrisObject*
-list_view_slice(const IrisList* list,
-                size_t* resulting_slice_len,
-                size_t l,
-                size_t h)
-{
-  assert(pointer_is_valid(list));
-  assert(list_is_valid(*list));
-  assert(pointer_is_valid(resulting_slice_len));
+// const struct _IrisObject*
+// list_view_slice(const IrisList list,
+//                 size_t* resulting_slice_len,
+//                 size_t l,
+//                 size_t h)
+// {
+//   assert(list_is_valid(list));
+//   assert(pointer_is_valid(resulting_slice_len));
+//   iris_check(l <= h, "low bound is greater than high one");
+//   iris_check(l < list.len, "low bound is outside of list");
+//   iris_check(h < list.len, "high bound is outside of list");
+//   *resulting_slice_len = h - l + 1ULL;
+//   return &list.items[l];
+// }
+
+IrisList list_slice(const IrisList list, size_t l, size_t h) {
+  assert(list_is_valid(list));
   iris_check(l <= h, "low bound is greater than high one");
-  iris_check(l > list->len, "low bound is outside of list");
-  iris_check(h > list->len, "high bound is outside of list");
-  *resulting_slice_len = h - l;
-  return &list->items[l];
+  iris_check(l < list.len, "low bound is outside of list");
+  iris_check(h < list.len, "high bound is outside of list");
+  IrisList result = {
+    .items = iris_alloc(h - l + 1ULL, IrisObject),
+    .len = h - l + 1ULL,
+    .cap = (((h - l + 1ULL) / LIST_GROW_N) + 1ULL) * LIST_GROW_N, // todo: isn't really necessary i think?
+  };
+  size_t counter = 0ULL;
+  for (size_t i = l; i <= h; i++) {
+    result.items[counter++] = object_copy(list.items[i]);
+  }
+  return result;
 }
 
 void list_destroy(IrisList* list) {
