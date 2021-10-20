@@ -20,18 +20,19 @@ typedef struct _IrisDict {
 
 IrisDict dict_new(void);
 IrisDict dict_copy(const IrisDict);
-void dict_push_object(IrisDict*, size_t key, struct _IrisObject*); // todo: we probably should require IrisObject for hashing instead of key directly
-void dict_push_string(IrisDict*, struct _IrisString*);
-void dict_push_func(IrisDict*, struct _IrisString*, struct _IrisFunc*); // todo: why does it require string?
-void dict_push_list(IrisDict*, size_t key, struct _IrisList*);
-void dict_erase_by_key(IrisDict*, size_t key);
-bool dict_has(const IrisDict, size_t key);
+void dict_push_object(IrisDict*, const struct _IrisObject key, struct _IrisObject* item);
+void dict_push_string(IrisDict*, const struct _IrisObject key, struct _IrisString* item);
+void dict_push_func(IrisDict*, const struct _IrisObject key, struct _IrisFunc* item);
+void dict_push_list(IrisDict*, const struct _IrisObject key, struct _IrisList* item);
+bool dict_has(const IrisDict, const struct _IrisObject key);
+void dict_erase(IrisDict*, const struct _IrisObject key);
+// void dict_erase_key(IrisDict*, size_t key); // todo: do we need it?
 
 /*
   @brief  Get copy of object in dictionary
   @warn   Will panic if there's no item with given key, check dict_has() before calling
 */
-struct _IrisObject dict_get(const IrisDict*, size_t key);
+struct _IrisObject dict_get(const IrisDict, const struct _IrisObject key);
 
 // todo: should be strongly discouraged even in implementation of interpreter
 /*
@@ -41,7 +42,7 @@ struct _IrisObject dict_get(const IrisDict*, size_t key);
           You should only use this after the dictionary was formed and will not mutate
   @warn   Will panic if there's no item with given key, check dict_has() before calling
 */
-const struct _IrisObject* dict_get_view(const IrisDict*, size_t key);
+const struct _IrisObject* dict_get_view(const IrisDict, const struct _IrisObject key);
 
 bool dict_is_valid(const IrisDict);
 void dict_destroy(IrisDict*);

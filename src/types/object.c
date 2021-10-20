@@ -26,6 +26,7 @@ struct _IrisObject object_copy(const struct _IrisObject obj) {
     default:
       panic("copy behavior for object variant isn't defined");
   }
+  __builtin_unreachable();
 }
 
 void object_move(IrisObject* obj) {

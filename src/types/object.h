@@ -78,4 +78,7 @@ void object_print(const IrisObject, bool newline);
 */
 void object_print_repr(const IrisObject, bool newline);
 
+#define int_to_object(i) (IrisObject){ .kind = irisObjectKindInt, .int_variant = i }
+#define float_to_object(f) (IrisObject){ .kind = irisObjectKindFloat, .float_variant = f }
+
 #endif

@@ -9,9 +9,9 @@ static IrisDict error_desc = {0};
 static unsigned int error_enum = IRIS_USER_ERRORS;
 
 void init_error_module(void) {
-  #define init_error_module_push_desc(type, desc) { \
-    IrisObject str = { .kind = irisObjectKindString, .string_variant = string_from_chars(desc) }; \
-    dict_push_object(&error_desc, type, &str); \
+  #define init_error_module_push_desc(type, desc) {           \
+    IrisString str = string_from_chars(desc);                 \
+    dict_push_string(&error_desc, int_to_object(type), &str); \
   }
   error_desc = dict_new();
   init_error_module_push_desc(irisErrorNoError,           "NoError");
@@ -72,7 +72,7 @@ void error_move(IrisError* err) {
 
 void error_print_repr(const IrisError err, bool newline) {
   assert((err.type < error_enum) && (err.type >= irisErrorNoError));
-  const IrisObject* desc = dict_get_view(&error_desc, err.type); // will fail if type isn't implemented
+  const IrisObject* desc = dict_get_view(error_desc, int_to_object(err.type)); // will fail if errtype isn't implemented
   string_print(desc->string_variant, false);
   if (!string_is_empty(err.msg)) {
     (void)fputs(": ", stdout);

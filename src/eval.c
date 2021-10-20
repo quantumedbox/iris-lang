@@ -34,16 +34,17 @@ static volatile bool repl_should_exit = false; // todo: shouldn't be here
 IrisDict scope_default(IrisList argv_list) {
   IrisDict result = dict_new();
 
-  #define push_to_scope(m_push_by, m_cfunc, m_symbol) {  \
-    IrisFunc func = m_push_by(m_cfunc);                  \
-    IrisString symbol = string_from_chars(m_symbol);     \
-    dict_push_func(&result, &symbol, &func);             \
+  #define push_to_scope(m_push_by, m_cfunc, m_symbol) {         \
+    IrisFunc func = m_push_by(m_cfunc);                         \
+    IrisString symbol = string_from_chars(m_symbol);            \
+    dict_push_func(&result, string_to_object(symbol), &func);   \
+    string_destroy(&symbol);                                    \
   }
   // argv list
   IrisString argv_name = string_from_chars("argv"); // todo: kinda lame that we have to create strings for that, there should be way to hash chars
   IrisObject argv_list_obj = list_to_object(argv_list);
   IrisObject argv_list_shared = refcell_to_object(refcell_from_object(&argv_list_obj));
-  dict_push_object(&result, argv_name.hash, &argv_list_shared);
+  dict_push_object(&result, string_to_object(argv_name), &argv_list_shared);
   string_destroy(&argv_name);
 
   // functions
@@ -170,8 +171,8 @@ IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
   } else if (obj.kind == irisObjectKindString) {
     // strings are used for lookup
     assert(string_is_valid(obj.string_variant));
-    if (dict_has(*scope, obj.string_variant.hash)) {
-      IrisObject lookup = dict_get(scope, obj.string_variant.hash);
+    if (dict_has(*scope, obj)) {
+      IrisObject lookup = dict_get(*scope, obj);
       assert(object_is_valid(lookup));
       return lookup;
     } else {
