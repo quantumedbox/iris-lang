@@ -15,6 +15,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 struct _IrisObject;
 struct _IrisString;
@@ -49,8 +50,8 @@ typedef struct _IrisObject {
   // homogeneous containers should be proffered
   IrisObjectKind kind;
   union {
-    int         int_variant; // todo: instead should use biggest available integer type that fits into register
-    float       float_variant; // todo: use double on x64
+    intmax_t    int_variant;    // todo: there's problem with portability of such integer. possibly we might ensure that size of int should be the same at any platform
+    float       float_variant;  // todo: use double on x64
     IrisString  string_variant;
     IrisList    list_variant;
     IrisDict    dict_variant;

@@ -18,8 +18,13 @@ void init_error_module(void) {
   init_error_module_push_desc(irisErrorTypeError,         "TypeError");
   init_error_module_push_desc(irisErrorContractViolation, "ContractViolation");
   init_error_module_push_desc(irisErrorNameError,         "NameError");
+  init_error_module_push_desc(irisErrorSyntaxError,       "SyntaxError");
+  init_error_module_push_desc(irisErrorOverflowError,     "OverflowError");
+  init_error_module_push_desc(irisErrorUnderflowError,    "UnderflowError");
+  init_error_module_push_desc(irisErrorEncodingError,     "EncodingError");
+  init_error_module_push_desc(irisErrorStackError,        "StackError");
   init_error_module_push_desc(irisErrorUserError,         "UserError");
-  static_assert(IRIS_USER_ERRORS == 5U, "error description missed");
+  iris_check(error_desc.card == IRIS_USER_ERRORS, "error description missed");
 }
 
 void deinit_error_module(void) {

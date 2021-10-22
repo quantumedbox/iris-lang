@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+// todo: bytecode stack-machine for runtime functions
+
 /*
   @brief  Signature by which runtime evaluation funcs are hooked
           args does usually point in memory or some IrisList object
@@ -15,7 +17,7 @@ typedef struct _IrisObject (*IrisFuncPrototype)(const struct _IrisObject* args, 
 typedef enum {
   irisFuncTypeNone,
   irisFuncTypeC,
-  irisFuncTypeList,
+  irisFuncTypeList, // todo: transform lists to bytecode on function creation? or make them as separate type
   N_FUNC_TYPES
 } IrisFuncType;
 
@@ -26,11 +28,14 @@ typedef enum {
 typedef struct _IrisFunc {
   IrisFuncType type;
   bool is_macro;                // todo: could be embedded in type field, but will make things messier
+                                // todo: macros should definitely be a separate function type as they should not be called on execution
   union {
     IrisFuncPrototype cfunc;
     struct _IrisList codedata;  // todo
   };
-  struct _IrisString docstring; // todo
+  struct _IrisString docstring; // todo: save it outside of function objects
+  // struct _IrisDict meta;     // todo: we need to store analytic information about functions
+                                //       there's also possibility of introducing IrisMeta wrapper for any object type
 } IrisFunc;
 
 /*

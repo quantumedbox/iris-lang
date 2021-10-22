@@ -19,6 +19,7 @@ goals:
 - optimizable by design
 - lists as reversed arrays
 - philosophy of dynamic and metamorphic C
+- automatic parallelization of side-effect free code
 
 - this particular implementation is restricted to typed that are valid
 - for .add-64 builtin function, user don't have to specify types unless required

@@ -18,12 +18,14 @@
 #include "reader.h"
 #include "memory.h"
 #include "utils.h"
+#include "iris.h"
 
 #define IRIS_ARGUMENT_STACK_LIMIT 32
 
-const char* eval_welcome_msg =
+const char* repl_welcome_msg =
   "- Iris REPL -\n"
-  "| version -- unspecified\n"
+  "| version -- "IRIS_VERSION"\n"
+  "| compiled -- "__DATE__"\n"
   "| enter (help) or (doc <name>) for getting info\n"
   "| ctrl+c or (quit) for exit\n";
 
@@ -33,7 +35,6 @@ static volatile bool repl_should_exit = false; // todo: shouldn't be here
 
 IrisDict scope_default(IrisList argv_list) {
   IrisDict result = dict_new();
-
   #define push_to_scope(m_push_by, m_cfunc, m_symbol) {         \
     IrisFunc func = m_push_by(m_cfunc);                         \
     IrisString symbol = string_from_chars(m_symbol);            \
@@ -50,7 +51,7 @@ IrisDict scope_default(IrisList argv_list) {
   // functions
   push_to_scope(func_from_cfunc,        cimpl_eval,         "eval");
   push_to_scope(func_from_cfunc,        cimpl_nurture,      "nurture");
-  push_to_scope(func_macro_from_cfunc,  cimpl_quote,        "quote");
+  push_to_scope(func_macro_from_cfunc,  cimpl_quote,        "quote!");
   push_to_scope(func_from_cfunc,        cimpl_echo,         "echo");
   // push_to_scope(func_from_cfunc,     cimpl_scope,        "scope"); // todo
   // push_to_scope(func_from_cfunc,     cimpl_def,          "def"); // todo
@@ -62,8 +63,8 @@ IrisDict scope_default(IrisList argv_list) {
   push_to_scope(func_from_cfunc,        cimpl_add,          "+");
   push_to_scope(func_from_cfunc,        cimpl_sub,          "-");
   push_to_scope(func_from_cfunc,        cimpl_reduce,       "reduce");
-  push_to_scope(func_macro_from_cfunc,  cimpl_timeit,       "timeit");
-  push_to_scope(func_macro_from_cfunc,  cimpl_repeat_eval,  "repeat-eval");
+  push_to_scope(func_macro_from_cfunc,  cimpl_timeit,       "timeit!");
+  push_to_scope(func_macro_from_cfunc,  cimpl_repeat_eval,  "repeat-eval!");
   push_to_scope(func_from_cfunc,        cimpl_metrics,      "metrics");
 
   return result;
@@ -109,22 +110,26 @@ void enter_repl(void) {
     iris_check_warn(true, "problem with setting up SIGINT handler for repl");
   }
   const IrisDict* scope = get_standard_scope_view();
-  (void)fprintf(stdout, "%s", eval_welcome_msg);
+  (void)fprintf(stdout, "%s", repl_welcome_msg);
   while (!repl_should_exit) {
     (void)fprintf(stdout, ">>> ");
     IrisString line = string_from_file_line(stdin);
-    IrisList sprout = nurture(line);
-    IrisObject result = eval_list(sprout, scope);
-    object_print_repr(result, true);
-    object_destroy(&result);
+    IrisObject code = string_read(line);
+    IrisObject run = codelist_resolve(code, *scope);
+    // IrisObject result = eval_list(sprout, scope);
+    // object_print_repr(result, true);
+    object_print_repr(run, true);
+    // object_destroy(&result);
     string_destroy(&line);
-    list_destroy(&sprout);
+    object_destroy(&code);
+    object_destroy(&run);
   }
   signal(SIGINT, SIG_DFL);
 }
 
 // todo: define ways of scope modification
 //       it could probably be done by special dicts that have back references to scope from which they inherit
+// todo: there should be no symbol lookup on evaluation
 IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
   assert(obj.kind < N_OBJECT_KINDS && obj.kind >= 0);
   if ((obj.kind == irisObjectKindList) && (obj.list_variant.len > 0ULL)) {
@@ -147,6 +152,9 @@ IrisObject eval_object(const IrisObject obj, const IrisDict* scope) {
     } else {
       // otherwise evaluate the parameters
       IrisObject argument_stack[IRIS_ARGUMENT_STACK_LIMIT];
+      if (obj.list_variant.len >= IRIS_ARGUMENT_STACK_LIMIT) {
+        return error_to_object(error_from_chars(irisErrorStackError, "argument stack exceeded"));
+      }
       for (size_t i = 0ULL; i < obj.list_variant.len - 1ULL; i++) {
         assert(object_is_valid(obj.list_variant.items[i + 1ULL]));
         argument_stack[i] = eval_object(obj.list_variant.items[i + 1ULL], scope);

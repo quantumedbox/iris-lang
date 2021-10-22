@@ -46,6 +46,9 @@ void object_move(IrisObject* obj) {
     case irisObjectKindRefCell:
       refcell_move(&obj->refcell_variant);
       break;
+    case irisObjectKindFunc:
+      func_move(&obj->func_variant);
+      break;
     default:
       panic("move behavior for object variant isn't defined");
   }
@@ -138,7 +141,7 @@ void object_print(const IrisObject obj, bool newline) {
       list_print_repr(obj.list_variant, newline);
       break;
     case irisObjectKindInt:
-      (void)fprintf(stdout, "%d", obj.int_variant);
+      (void)fprintf(stdout, "%lld", obj.int_variant);
       if (newline) { (void)fputc('\n', stdout); }
       fflush(stdout);
       break;
@@ -176,7 +179,7 @@ void object_print_repr(const IrisObject obj, bool newline) {
       list_print_repr(obj.list_variant, newline);
       break;
     case irisObjectKindInt:
-      (void)fprintf(stdout, "%d", obj.int_variant);
+      (void)fprintf(stdout, "%lld", obj.int_variant);
       if (newline) { (void)fputc('\n', stdout); }
       fflush(stdout);
       break;

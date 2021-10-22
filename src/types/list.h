@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct _IrisList {
   // iris lists are arrays which do act like typical lisp linked lists
@@ -17,8 +18,14 @@ typedef struct _IrisList {
 
 IrisList list_new(void);
 IrisList list_copy(const IrisList);
+
+/*
+  @brief  Moves variant object to list
+  @warn   Passed object should no longer be used!
+*/
 void list_push_object(IrisList*, struct _IrisObject*);
-void list_push_int(IrisList*, int); // todo: should it be passed by ref to?
+
+void list_push_int(IrisList*, intmax_t); // todo: should it be passed by ref to?
 void list_push_string(IrisList*, struct _IrisString*);
 void list_push_list(IrisList*, IrisList*);
 bool list_is_valid(const IrisList);
@@ -38,6 +45,11 @@ bool list_is_valid(const IrisList);
   @brief  Get list consisting of copy of consequent items in list
 */
 struct _IrisList list_slice(const IrisList, size_t l, size_t h);
+
+/*
+  @brief  Push object to certain position replacing already existing one
+*/
+void list_nth_set(IrisList*, size_t idx, struct _IrisObject*);
 
 void list_destroy(IrisList*);
 void list_move(IrisList*);

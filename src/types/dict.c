@@ -203,7 +203,6 @@ struct _IrisObject dict_get(const IrisDict dict, const IrisObject key) {
   __builtin_unreachable();
 }
 
-// todo: pass dict by value?
 const IrisObject* dict_get_view(const IrisDict dict, const IrisObject key) {
   assert(dict_is_valid(dict));
   assert(object_is_valid(key));

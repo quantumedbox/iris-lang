@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "types/types.h"
 #include "utils.h"
@@ -31,40 +32,25 @@ IrisList list_copy(const IrisList list) {
 }
 
 __forceinline void list_grow(IrisList* list) {
+  assert(list->len <= list->cap);
   if (list->len == list->cap) {
     list->cap += LIST_GROW_N;
     list->items = iris_resize(list->items, list->cap, IrisObject);
   }
 }
 
-/*
-  @brief  Moves variant object to list
-  @warn   Passed object should no longer be used!
-*/
 void list_push_object(IrisList* list, IrisObject* obj) {
-  // assert(pointer_is_valid(list));
-  // assert(list_is_valid(*list));
-  // list_grow(list);
-  // list->items[list->len] = *obj;
-  // list->len++;
-  switch (obj->kind) {
-    case irisObjectKindInt: 
-      list_push_int(list, obj->int_variant);
-      break;
-    case irisObjectKindList:
-      list_push_list(list, &obj->list_variant);
-      break;
-    case irisObjectKindString:
-      list_push_string(list, &obj->string_variant);
-      break;
-    default: panic("copy to list behavior for pushing to list not defined for type");
-  }
+  assert(pointer_is_valid(list));
+  assert(pointer_is_valid(obj));
+  assert(list_is_valid(*list));
+  assert(object_is_valid(*obj));
+  list_grow(list);
+  list->items[list->len] = object_copy(*obj);
+  list->len++;
+  object_move(obj);
 }
 
-/*
-  @brief  Moves integer into list
-*/
-void list_push_int(IrisList* list, int val) {
+void list_push_int(IrisList* list, intmax_t val) {
   assert(pointer_is_valid(list));
   assert(list_is_valid(*list));
   list_grow(list);
@@ -73,10 +59,6 @@ void list_push_int(IrisList* list, int val) {
   list->len++;
 }
 
-/*
-  @brief  Moves string into list as string object
-  @warn   Passed string should no longer be used!
-*/
 void list_push_string(IrisList* list, IrisString* str) {
   assert(pointer_is_valid(list));
   assert(list_is_valid(*list));
@@ -87,10 +69,6 @@ void list_push_string(IrisList* list, IrisString* str) {
   string_move(str);
 }
 
-/*
-  @brief  Moves list into list
-  @warn   Passed list should no longer be used!
-*/
 void list_push_list(IrisList* list, IrisList* val_list) {
   assert(pointer_is_valid(list));
   assert(list_is_valid(*list));
@@ -147,6 +125,14 @@ IrisList list_slice(const IrisList list, size_t l, size_t h) {
     result.items[counter++] = object_copy(list.items[i]);
   }
   return result;
+}
+
+void list_nth_set(IrisList* list, size_t idx, IrisObject* obj) {
+  assert(list_is_valid(*list));
+  iris_check(idx < list->len, "idx out of bounds");
+  object_destroy(&list->items[idx]);
+  list->items[idx] = *obj;
+  object_move(obj);
 }
 
 void list_destroy(IrisList* list) {

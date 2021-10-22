@@ -25,6 +25,18 @@ typedef enum {
   irisErrorNameError,
 
   /*
+    Reader related errors
+  */
+  irisErrorSyntaxError,
+
+  irisErrorOverflowError,
+  irisErrorUnderflowError,
+
+  irisErrorEncodingError,
+
+  irisErrorStackError,
+
+  /*
     Unspecified error that might be used for signaling error messages of API
   */
   irisErrorUserError,

@@ -5,6 +5,8 @@
 
 #include "utils.h"
 
+// todo: make checks inlined and with usage of __LINE__ / __FILE__ /__PRETTY_FUNCTION__ ?
+
 #ifndef IRIS_NO_CHECKS
 /*
   @brief  Should be used for runtime checking where cause of crush is user data, not internal state

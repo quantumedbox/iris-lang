@@ -4,6 +4,7 @@
 #include <stdnoreturn.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdint.h>
 
 #include "eval.h"
 #include "types/types.h"
@@ -11,6 +12,7 @@
 #include "memory.h"
 #include "utils.h"
 
+// todo: should we automatically convert types? for example when mixing integers and floats
 // todo: resolving symbol in reader might be a better way
 //       also macros have more sense to work on reading and not evaluation
 // todo: prefix with 'cimpl'
@@ -50,7 +52,7 @@ static IrisObject cimpl_nurture(const IrisObject* args, size_t arg_count) {
   if (args[0].kind != irisObjectKindString) {
     return error_to_object(error_from_chars(irisErrorTypeError, "argument of nurture should be string"));
   }
-  return list_to_object(nurture(args[0].string_variant));
+  return string_read(args[0].string_variant);
 }
 
 // In-Iris alternative:
@@ -144,7 +146,7 @@ static IrisObject cimpl_repeat_eval(const IrisObject* args, size_t arg_count) {
   }
   assert(pointer_is_valid(args));
   const IrisDict* scope = get_standard_scope_view();
-  for (int i = 0; i < args[0].int_variant; i++) {
+  for (intmax_t i = 0; i < args[0].int_variant; i++) {
     IrisObject something = eval_object(args[1], scope);
     if (something.kind == irisObjectKindError) {
       return something;
@@ -233,6 +235,13 @@ static IrisObject cimpl_reduce(const IrisObject* args, size_t arg_count) {
   return cell[0];
 }
 
+// todo: should we even allow different types of operands to be used?
+// todo: overflowing and underflowing guards
+// todo: probably separate float function, also, we need to care a bit about exceptions:
+//       https://en.wikipedia.org/wiki/C_mathematical_functions#Floating-point_environment
+// todo: problem with current error handling is that it invalidates passed data on error
+//       sometimes we might want to have ability to save it, tho, probably it's solvable by
+//       utilizing the fact that caller still have the ownership over original args in any resolution of callee 
 /*
   @brief    Addition operation
             Promotes integers to floats if one of arg is float
@@ -267,6 +276,9 @@ static IrisObject cimpl_add(const IrisObject* args, size_t arg_count) {
   }
 }
 
+// todo: overflowing and underflowing guards
+// todo: probably separate float function, also, we need to care a bit about exceptions:
+//       https://en.wikipedia.org/wiki/C_mathematical_functions#Floating-point_environment
 /*
   @brief    Subtraction operation
             Promotes integers to floats if one of arg is float

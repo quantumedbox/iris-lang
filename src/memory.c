@@ -7,6 +7,8 @@
 #include "types/types.h"
 #include "utils.h"
 
+// todo: thread-local memory treatment might be beneficial for running interpreter instances concurrently
+//       possible reference: https://link.springer.com/content/pdf/10.1007%2F978-3-540-31985-6_10.pdf
 // todo: it's possible to log status and lifetime changes of every allocation
 // todo: something similar to mcheck.h functionalities, we could trace double frees and validity of pointers as allocations
 
