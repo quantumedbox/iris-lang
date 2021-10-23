@@ -1,10 +1,3 @@
-// todo: evaluation of "quote" lists returned from other lists
-//       maybe it could some sort of "delayed" promise? that should be computed on evaluation
-
-// todo: (help)
-// todo: (doc <symbol>)
-// todo: (for [binding list [binding list ...]] body) -- iteration over list
-
 #include "core/cimpl.c"
 
 #include <stdio.h>
@@ -21,6 +14,14 @@
 #include "memory.h"
 #include "utils.h"
 #include "iris.h"
+
+// todo: evaluation of "quote" lists returned from other lists
+//       maybe it could some sort of "delayed" promise? that should be computed on evaluation
+
+// todo: (help)
+// todo: (doc <symbol>)
+// todo: (for [binding list [binding list ...]] body) -- iteration over list
+// todo: call stack for debugging
 
 #define IRIS_ARGUMENT_STACK_LIMIT 32
 
@@ -106,17 +107,17 @@ void enter_repl(void) {
     (void)fputs(">>> ", stdout);
     IrisString line = string_from_file_line(stdin);
     IrisObject code = string_read(line);
-    IrisObject run = codelist_resolve(code, *scope);
-    if (run.kind != irisObjectKindError) {
-      IrisObject result = eval_codelist(run.list_variant);
+    IrisObject torun = codelist_resolve(code, *scope);
+    if (torun.kind != irisObjectKindError) {
+      IrisObject result = eval_codelist(torun.list_variant);
       object_print_repr(result, true);
       object_destroy(&result);
     } else {
-      object_print_repr(run, true);
+      object_print_repr(torun, true);
     }
     string_destroy(&line);
     object_destroy(&code);
-    object_destroy(&run);
+    object_destroy(&torun);
   }
   signal(SIGINT, SIG_DFL);
 }
@@ -131,19 +132,28 @@ void eval_file(const IrisString filename) {
   iris_check(file != NULL, "cannot open file for evaluation");
   IrisString content = string_from_file(file);
   fclose(file);
-  IrisObject code = string_read(content);
   const IrisDict* scope = get_standard_scope_view();
-  IrisObject run = codelist_resolve(code, *scope);
-  if (run.kind != irisObjectKindError) {
-    IrisObject result = eval_codelist(run.list_variant);
-    object_print_repr(result, true);
-    object_destroy(&result);
+  IrisObject code = string_read(content);
+  if (code.kind != irisObjectKindError) {
+    IrisObject torun = codelist_resolve(code, *scope);
+    if (torun.kind != irisObjectKindError) {
+      IrisObject result = eval_codelist(torun.list_variant);
+      if (result.kind == irisObjectKindError) {
+        (void)fputs(ANSI_ESCAPE_ERROR"evaluation error:"ANSI_ESCAPE_RESET" ", stderr);
+        object_print_repr(result, true);
+      }
+      object_destroy(&result);
+    } else {
+      (void)fputs(ANSI_ESCAPE_ERROR"resolving error:"ANSI_ESCAPE_RESET" ", stderr);
+      object_print_repr(torun, true);
+    }
+    object_destroy(&torun);
   } else {
-    object_print_repr(run, true);
+    (void)fputs(ANSI_ESCAPE_ERROR"reader error:"ANSI_ESCAPE_RESET" ", stderr);
+    object_print_repr(code, true);
   }
-  string_destroy(&content);
   object_destroy(&code);
-  object_destroy(&run);
+  string_destroy(&content);
 }
 
 // todo: define ways of scope modification

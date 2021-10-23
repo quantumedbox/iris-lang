@@ -3,6 +3,12 @@
 
 #include "types/types.h"
 
+// todo: thread control
+typedef struct _IrisInterpreter {
+  IrisList inhereted_scopes; // immutable formed scopes
+  IrisDict local_scope; // interpreter-local scope that could be modified
+} IrisInterpreter;
+
 void eval_module_init(void);
 void eval_module_deinit(void);
 

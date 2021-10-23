@@ -11,6 +11,7 @@
 // todo: should they be cached on creation or only on first hash request?
 
 #include "types/types.h"
+#include "iris_utf8.h"
 #include "memory.h"
 #include "utils.h"
 
@@ -97,9 +98,9 @@ IrisString string_from_file_line(FILE* file) {
   return result;
 }
 
+// todo: ignore BOM?
 IrisString string_from_file(FILE* file) {
   IrisString result = {0};
-
   {
     long int restore_cursor = ftell(file);
     if (restore_cursor == -1L) { errno_panic(); }

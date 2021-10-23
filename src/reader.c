@@ -5,6 +5,7 @@
 
 #include "reader.h"
 #include "types/types.h"
+#include "iris_utf8.h"
 #include "utils.h"
 
 // todo: maybe some compile-time options? such as ability to define custom symbols or turning off quoting and such
@@ -21,48 +22,6 @@
 // #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough, but might be problematic in the future
 
 static bool parse_list(IrisObject*, size_t*, const char*, const char*);
-
-/*
-  @brief  Check to what codepoint width given octet corresponds
-  @warn   Should be valid starting UTF-8 octet
-*/
-__forceinline unsigned int utf8_codepoint_width(char ch) {
-  if (!(ch & 0b10000000)) {
-    return 1U;
-  } else if (!(ch & 0b00100000) && ((ch & 0b11000000) == 0b11000000)) {
-    return 2U;
-  } else if (!(ch & 0b0001000) && ((ch & 0b11100000) == 0b11100000)) {
-    return 3U;
-  } else if (!(ch & 0b0000100) && ((ch & 0b11110000) == 0b11110000)) { // should we care about ISO/IEC 10646?
-    return 4U;
-  }
-  panic("invalid utf8 codepoint");
-}
-
-bool is_encoded_in_utf8(const IrisString str) {
-  const char* ptr = str.data;
-  while (ptr < &str.data[str.len]) {
-    if ((*ptr & 0b1000000) & (!(*ptr & 0b01000000))) {
-      // first bit cannot be 1 and then followed by 0
-      return false;
-    }
-    unsigned int width = utf8_codepoint_width(*ptr) - 1U;
-    ptr++;
-    if ((ptr + width) > &str.data[str.len]) {
-      // codepoint is outside of string bounds
-      return false;
-    }
-    for (unsigned int i = 0U; i < width; i++) {
-      // each octet should start with 0b10xxxxxx
-      if (!(*(ptr++) & 0b1000000)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-#define ascii_cmp(ch, c_ch) (utf8_codepoint_width(ch) == 1U) && (ch == c_ch)
 
 __forceinline bool is_whitespace(char ch) {
   if (utf8_codepoint_width(ch) != 1U) {
@@ -96,15 +55,19 @@ __forceinline bool is_reserved_char(char ch) {
 
 // todo: should we care about Unicode whitespace characters?
 /*
-  @brief  Skip any whitespace character
+  @brief  Skip any whitespace characters, also skip comments
   @return How many characters are skipped
 */
 static size_t eat_whitespace(const char* slice, const char* limit) {
   assert(slice <= limit);
   const char* ptr = slice;
-  while (ptr <= limit) {
+  while ((ptr <= limit)) {
     if (is_whitespace(*ptr)) {
       ptr++;
+    } else if (*ptr == ';') {
+      do {
+        ptr += utf8_codepoint_width(*ptr);
+      } while (!ascii_cmp(*ptr, '\n'));
     } else {
       break;
     }
@@ -233,15 +196,15 @@ static bool parse_quote(IrisObject* target, size_t* parsed, const char* slice, c
   assert(parsed != NULL);
   const char* ptr = slice;
   if (ascii_cmp(*ptr, '\'')) {
+    ptr++; // skip past '\'
+    if (ptr > limit) { return false; }
+    ptr += eat_whitespace(ptr, limit);
+    if (ptr > limit) { return false; }
     IrisList result = list_new();
     IrisString quote_sym = string_from_chars("quote!");
     list_push_string(&result, &quote_sym);
     IrisObject obj_parsed;
     size_t chars_parsed;
-    ptr++;
-    if (ptr > limit) { return false; }
-    ptr += eat_whitespace(ptr, limit);
-    if (ptr > limit) { return false; }
     if (parse_quote(&obj_parsed, &chars_parsed, ptr, limit) ||
         parse_int(&obj_parsed, &chars_parsed, ptr, limit) ||
         parse_atomic_symbol(&obj_parsed, &chars_parsed, ptr, limit) ||
@@ -268,15 +231,16 @@ static bool parse_list(IrisObject* target, size_t* parsed, const char* slice, co
   assert(parsed != NULL);
   const char* ptr = slice;
   if (ascii_cmp(*ptr, '(')) {
-    IrisList result = list_new();
-    IrisObject obj_parsed;
-    size_t chars_parsed;
     ptr++; // skip past '('
     if (ptr > limit) { return false; }
     ptr += eat_whitespace(ptr, limit);
     if (ptr > limit) { return false; }
+    IrisList result = list_new();
+    IrisObject obj_parsed;
+    size_t chars_parsed;
     while (ptr <= limit) {
       ptr += eat_whitespace(ptr, limit);
+      if (ptr > limit) { break; }
       if (ascii_cmp(*ptr, ')')) {
         *target = list_to_object(result);
         *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char)) + 1ULL;
@@ -304,7 +268,7 @@ static bool parse_list(IrisObject* target, size_t* parsed, const char* slice, co
 }
 
 IrisObject string_read(const IrisString source) {
-  if (is_encoded_in_utf8(source)) {
+  if (utf8_check_validity(source)) {
     IrisList result = list_new();
     if (source.len == 0ULL) {
       return list_to_object(result);

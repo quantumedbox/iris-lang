@@ -1,8 +1,6 @@
-; quote is built-in macro that returns single parameter as it is
-(echo (quote (1 2 3 4)))
+(echo (quote! (1 2 3 4))) ; quote is built-in macro that returns single parameter as it is
 
-; echo that is encapsulated will not be called
-(echo (quote echo))
+(echo (quote! echo)) ; quoted symbols aren't resolved to functions
+(echo echo)          ; compare to this
 
-; default reader supports ' marker that forces next object to be quoted
-'(1 2 3)
+(echo '(4 3 2 1))    ; default reader supports ' marker that forces next object to be quoted

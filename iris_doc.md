@@ -9,6 +9,7 @@ todo:
 - interface to define builtin functions via iris syntax
 - function interface to work with builtin types
 - defined type system
+- compilation to shared objects, usage of iris as statically linkable module
 
 goals:
 -----
