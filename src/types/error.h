@@ -8,9 +8,6 @@
 typedef enum {
   irisErrorNoError,
 
-  /*
-    Type error
-  */
   irisErrorTypeError,
 
   /*

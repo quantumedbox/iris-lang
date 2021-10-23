@@ -70,7 +70,7 @@ size_t object_hash(const IrisObject obj) {
 }
 
 bool object_is_valid(const IrisObject obj) {
-  if (obj.kind > N_OBJECT_KINDS) {
+  if ((obj.kind > N_OBJECT_KINDS) || (obj.kind < 0)) {
     return false;
   }
   switch (obj.kind) {

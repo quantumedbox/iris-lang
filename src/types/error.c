@@ -83,7 +83,7 @@ void error_print_repr(const IrisError err, bool newline) {
     (void)fputs(": ", stdout);
     string_print(err.msg, false);
   } else {
-    (void)fputs(": no message", stdout);
+    (void)fputs(": -", stdout);
   }
   if (newline) (void)fputc('\n', stdout);
 }

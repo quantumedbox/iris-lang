@@ -35,25 +35,25 @@ static IrisObject cimpl_metrics(const IrisObject* args, size_t arg_count) {
 }
 
 // todo: something more poetic?
-static IrisObject cimpl_eval(const IrisObject* args, size_t arg_count) {
-  if (arg_count != 1ULL) {
-    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
-  }
-  if (args[0].kind != irisObjectKindList) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "argument of eval should be list"));
-  }
-  return eval_list(args[0].list_variant, get_standard_scope_view());
-}
+// static IrisObject cimpl_eval(const IrisObject* args, size_t arg_count) {
+//   if (arg_count != 1ULL) {
+//     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+//   }
+//   if (args[0].kind != irisObjectKindList) {
+//     return error_to_object(error_from_chars(irisErrorTypeError, "argument of eval should be list"));
+//   }
+//   return eval_list(args[0].list_variant, get_standard_scope_view());
+// }
 
-static IrisObject cimpl_nurture(const IrisObject* args, size_t arg_count) {
-  if (arg_count != 1ULL) {
-    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
-  }
-  if (args[0].kind != irisObjectKindString) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "argument of nurture should be string"));
-  }
-  return string_read(args[0].string_variant);
-}
+// static IrisObject cimpl_nurture(const IrisObject* args, size_t arg_count) {
+//   if (arg_count != 1ULL) {
+//     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+//   }
+//   if (args[0].kind != irisObjectKindString) {
+//     return error_to_object(error_from_chars(irisErrorTypeError, "argument of nurture should be string"));
+//   }
+//   return string_read(args[0].string_variant);
+// }
 
 // In-Iris alternative:
 // >>> (defmacro quote [arg]
@@ -138,23 +138,23 @@ static IrisObject cimpl_rest(const IrisObject* args, size_t arg_count) {
   @brief    Macro for evaluating body n times, results of evaluations are dropped, returns None
   @variants (2: int body)
 */
-static IrisObject cimpl_repeat_eval(const IrisObject* args, size_t arg_count) {
-  if (arg_count != 2ULL) {
-    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
-  } else if (args[0].kind != irisObjectKindInt) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "first repeat argument should be int"));
-  }
-  assert(pointer_is_valid(args));
-  const IrisDict* scope = get_standard_scope_view();
-  for (intmax_t i = 0; i < args[0].int_variant; i++) {
-    IrisObject something = eval_object(args[1], scope);
-    if (something.kind == irisObjectKindError) {
-      return something;
-    }
-    object_destroy(&something);
-  }
-  return (IrisObject){0}; // None
-}
+// static IrisObject cimpl_repeat_eval(const IrisObject* args, size_t arg_count) {
+//   if (arg_count != 2ULL) {
+//     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+//   } else if (args[0].kind != irisObjectKindInt) {
+//     return error_to_object(error_from_chars(irisErrorTypeError, "first repeat argument should be int"));
+//   }
+//   assert(pointer_is_valid(args));
+//   const IrisDict* scope = get_standard_scope_view();
+//   for (intmax_t i = 0; i < args[0].int_variant; i++) {
+//     IrisObject something = eval_object(args[1], scope);
+//     if (something.kind == irisObjectKindError) {
+//       return something;
+//     }
+//     object_destroy(&something);
+//   }
+//   return (IrisObject){0}; // None
+// }
 
 /*
   In-Iris alternative:
@@ -171,24 +171,24 @@ static IrisObject cimpl_repeat_eval(const IrisObject* args, size_t arg_count) {
   @return   Float -- seconds of execution
   @variants (1: body)
 */
-static IrisObject cimpl_timeit(const IrisObject* args, size_t arg_count) {
-  if (arg_count > 1ULL) {
-    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
-  }
-  assert(pointer_is_valid(args));
-  assert(object_is_valid(args[0]));
+// static IrisObject cimpl_timeit(const IrisObject* args, size_t arg_count) {
+//   if (arg_count > 1ULL) {
+//     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+//   }
+//   assert(pointer_is_valid(args));
+//   assert(object_is_valid(args[0]));
 
-  const IrisDict* scope = get_standard_scope_view();
-  clock_t start_time = clock();
-  IrisObject result = eval_object(args[0], scope);
-  if (result.kind == irisObjectKindError) {
-    goto RETURN;
-  }
-  clock_t end_time = clock();
-  (void)fprintf(stdout, "time of execution: %f\n", (float)(end_time - start_time) / CLOCKS_PER_SEC);
-RETURN:
-  return result;
-}
+//   const IrisDict* scope = get_standard_scope_view();
+//   clock_t start_time = clock();
+//   IrisObject result = eval_object(args[0], scope);
+//   if (result.kind == irisObjectKindError) {
+//     goto RETURN;
+//   }
+//   clock_t end_time = clock();
+//   (void)fprintf(stdout, "time of execution: %f\n", (float)(end_time - start_time) / CLOCKS_PER_SEC);
+// RETURN:
+//   return result;
+// }
 
 // In-Iris alternative:
 // >>> (defn-macro reduce [fn ls]
@@ -201,39 +201,39 @@ RETURN:
   @return   Result of last function call
   @variants (2: func list)
 */
-static IrisObject cimpl_reduce(const IrisObject* args, size_t arg_count) {
-  if (arg_count != 2ULL) {
-    return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
-  }
-  assert(pointer_is_valid(args));
-  assert(object_is_valid(args[0]));
-  assert(object_is_valid(args[1]));
-  if (args[0].kind != irisObjectKindFunc) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "first argument of reduce should be callable"));
-  }
-  const IrisDict* scope = get_standard_scope_view();
-  IrisObject supposedly_list = eval_object(args[1], scope);
-  if (supposedly_list.kind == irisObjectKindError) {
-    return supposedly_list;
-  }
-  if (supposedly_list.kind != irisObjectKindList) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "second argument of reduce should be list"));
-  }
-  if (supposedly_list.list_variant.len < 2ULL) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "there should be at least 2 arguments in list to be reduced"));
-  }
-  IrisObject cell[2] = {
-    func_call(args[0].func_variant, &supposedly_list.list_variant.items[0], 2ULL),
-    (IrisObject){0}
-  };
-  for (size_t i = 2ULL; i < supposedly_list.list_variant.len; i++) {
-    cell[1] = supposedly_list.list_variant.items[i];
-    IrisObject to_destoy = cell[0];
-    cell[0] = func_call(args[0].func_variant, cell, 2ULL);
-    object_destroy(&to_destoy);
-  }
-  return cell[0];
-}
+// static IrisObject cimpl_reduce(const IrisObject* args, size_t arg_count) {
+//   if (arg_count != 2ULL) {
+//     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
+//   }
+//   assert(pointer_is_valid(args));
+//   assert(object_is_valid(args[0]));
+//   assert(object_is_valid(args[1]));
+//   if (args[0].kind != irisObjectKindFunc) {
+//     return error_to_object(error_from_chars(irisErrorTypeError, "first argument of reduce should be callable"));
+//   }
+//   const IrisDict* scope = get_standard_scope_view();
+//   IrisObject supposedly_list = eval_object(args[1], scope);
+//   if (supposedly_list.kind == irisObjectKindError) {
+//     return supposedly_list;
+//   }
+//   if (supposedly_list.kind != irisObjectKindList) {
+//     return error_to_object(error_from_chars(irisErrorTypeError, "second argument of reduce should be list"));
+//   }
+//   if (supposedly_list.list_variant.len < 2ULL) {
+//     return error_to_object(error_from_chars(irisErrorTypeError, "there should be at least 2 arguments in list to be reduced"));
+//   }
+//   IrisObject cell[2] = {
+//     func_call(args[0].func_variant, &supposedly_list.list_variant.items[0], 2ULL),
+//     (IrisObject){0}
+//   };
+//   for (size_t i = 2ULL; i < supposedly_list.list_variant.len; i++) {
+//     cell[1] = supposedly_list.list_variant.items[i];
+//     IrisObject to_destoy = cell[0];
+//     cell[0] = func_call(args[0].func_variant, cell, 2ULL);
+//     object_destroy(&to_destoy);
+//   }
+//   return cell[0];
+// }
 
 // todo: should we even allow different types of operands to be used?
 // todo: overflowing and underflowing guards

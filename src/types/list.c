@@ -45,7 +45,7 @@ void list_push_object(IrisList* list, IrisObject* obj) {
   assert(list_is_valid(*list));
   assert(object_is_valid(*obj));
   list_grow(list);
-  list->items[list->len] = object_copy(*obj);
+  list->items[list->len] = *obj;
   list->len++;
   object_move(obj);
 }

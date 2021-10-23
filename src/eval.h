@@ -22,8 +22,7 @@ const IrisDict* get_standard_scope_view(void);
   @params scope - dictionary that contains callable and data objects, lookup of symbols is done against it
           in_repl - if true then every top-most list result will be printed, otherwise ignored
 */
-IrisObject eval_list(const IrisList, const IrisDict* scope);
-
-IrisObject eval_object(const IrisObject, const IrisDict* scope);
+IrisObject eval_codelist(const IrisList);
+IrisObject eval_object(const IrisObject);
 
 #endif

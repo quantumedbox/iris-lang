@@ -8,17 +8,15 @@
 #include "utils.h"
 
 // todo: maybe some compile-time options? such as ability to define custom symbols or turning off quoting and such
-// todo: should operate within interpreter and thus have ability to return error objects
 // todo: require spaces between in-list objects
 //       there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
 // todo: floats
-//       for that there should be some utility for decoding utf-8, preferably lazily
 // todo: problem with strings in quoted lists:
 //       '(shit) -> ("shit") -- this works, but if you want to have string that contains spaces
 //       '("shit shit") -> '(quote "shit shit") -- will produce quoted string instead
 //       one possible solution is to require quoting by ' and "" strings will be just strings
 //       ' "this" -- but it's not very ergonomic, especially when written as '"this"
-// todo: function for checking if string consists of valid UTF-8 codepoints
+// todo: parse None // todo: maybe change to 'nil' ?
 
 // #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough, but might be problematic in the future
 
@@ -104,7 +102,7 @@ __forceinline bool is_reserved_char(char ch) {
 static size_t eat_whitespace(const char* slice, const char* limit) {
   assert(slice <= limit);
   const char* ptr = slice;
-  while (limit >= ptr) {
+  while (ptr <= limit) {
     if (is_whitespace(*ptr)) {
       ptr++;
     } else {
@@ -129,15 +127,16 @@ static bool parse_int(IrisObject* target, size_t* parsed, const char* slice, con
   if (ascii_cmp(*ptr, '-')) {
     is_negative = true;
     ptr++;
+    if (ptr > limit) { return false; }
   }
   if ((utf8_codepoint_width(*ptr) == 1U) && (*ptr >= '1') && (*ptr <= '9')) {
     IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
     ptr++;
-    while ((ptr < limit) && (utf8_codepoint_width(*ptr) == 1U) && (*ptr >= '0') && (*ptr <= '9')) {
+    while ((ptr <= limit) && (utf8_codepoint_width(*ptr) == 1U) && (*ptr >= '0') && (*ptr <= '9')) {
       intmax_t check = result.int_variant;
       result.int_variant = result.int_variant * 10 + (*ptr - '0');
       if (check >= result.int_variant) { // todo: lower bound truncates incorrectly
-        *target = error_to_object(error_new(is_negative? irisErrorUnderflowError : irisErrorOverflowError));
+        // *target = error_to_object(error_new(is_negative? irisErrorUnderflowError : irisErrorOverflowError));
         return false;
       }
       ptr++;
@@ -158,15 +157,13 @@ static bool parse_atomic_symbol(IrisObject* target, size_t* parsed, const char* 
   assert(target != NULL);
   assert(parsed != NULL);
   const char* ptr = slice;
-  while (limit > ptr) {
+  while (ptr <= limit) {
     if (is_reserved_char(*ptr) || is_whitespace(*ptr)) {
       break;
     }
     ptr += utf8_codepoint_width(*ptr);
   }
-  if (ptr == slice) {
-    return false;
-  }
+  if (ptr == slice) { return false; }
   IrisObject result = string_to_object(string_from_view(slice, ptr));
   *target = result;
   *parsed = result.string_variant.len;
@@ -180,7 +177,7 @@ static bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* 
   const char* ptr = slice;
   if (ascii_cmp(*ptr, '\"')) {
     ptr++;
-    while (limit > ptr) {
+    while (ptr <= limit) {
       if (ascii_cmp(*ptr, '\"')) {
         IrisObject result = string_to_object(string_from_view(slice + 1U, ptr));
         *target = result;
@@ -189,7 +186,7 @@ static bool parse_marked_symbol(IrisObject* target, size_t* parsed, const char* 
       }
       ptr += utf8_codepoint_width(*ptr);
     }
-    *target = error_to_object(error_from_chars(irisErrorSyntaxError, "trailing unclosed string"));
+    // *target = error_to_object(error_from_chars(irisErrorSyntaxError, "trailing unclosed string"));
     return false;
   }
   // *target = error_to_object(error_new(irisErrorSyntaxError))
@@ -236,13 +233,15 @@ static bool parse_quote(IrisObject* target, size_t* parsed, const char* slice, c
   assert(parsed != NULL);
   const char* ptr = slice;
   if (ascii_cmp(*ptr, '\'')) {
-    ptr++;
     IrisList result = list_new();
     IrisString quote_sym = string_from_chars("quote!");
     list_push_string(&result, &quote_sym);
     IrisObject obj_parsed;
     size_t chars_parsed;
+    ptr++;
+    if (ptr > limit) { return false; }
     ptr += eat_whitespace(ptr, limit);
+    if (ptr > limit) { return false; }
     if (parse_quote(&obj_parsed, &chars_parsed, ptr, limit) ||
         parse_int(&obj_parsed, &chars_parsed, ptr, limit) ||
         parse_atomic_symbol(&obj_parsed, &chars_parsed, ptr, limit) ||
@@ -254,7 +253,7 @@ static bool parse_quote(IrisObject* target, size_t* parsed, const char* slice, c
       *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
       return true;
     } else {
-      *target = error_to_object(error_new(irisErrorSyntaxError));
+      // *target = error_to_object(error_new(irisErrorSyntaxError));
       list_destroy(&result);
       return false;
     }
@@ -269,18 +268,20 @@ static bool parse_list(IrisObject* target, size_t* parsed, const char* slice, co
   assert(parsed != NULL);
   const char* ptr = slice;
   if (ascii_cmp(*ptr, '(')) {
-    ptr++;
     IrisList result = list_new();
-    while (ptr != limit) {
-      assert(ptr < limit);
+    IrisObject obj_parsed;
+    size_t chars_parsed;
+    ptr++; // skip past '('
+    if (ptr > limit) { return false; }
+    ptr += eat_whitespace(ptr, limit);
+    if (ptr > limit) { return false; }
+    while (ptr <= limit) {
       ptr += eat_whitespace(ptr, limit);
       if (ascii_cmp(*ptr, ')')) {
         *target = list_to_object(result);
         *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char)) + 1ULL;
         return true;
       }
-      IrisObject obj_parsed;
-      size_t chars_parsed;
       if (parse_quote(&obj_parsed, &chars_parsed, ptr, limit) ||
           parse_int(&obj_parsed, &chars_parsed, ptr, limit) ||
           parse_atomic_symbol(&obj_parsed, &chars_parsed, ptr, limit) ||
@@ -289,13 +290,13 @@ static bool parse_list(IrisObject* target, size_t* parsed, const char* slice, co
         list_push_object(&result, &obj_parsed);
         ptr += chars_parsed;
       } else {
-        *target = error_to_object(error_new(irisErrorSyntaxError));
+        // *target = error_to_object(error_new(irisErrorSyntaxError));
         list_destroy(&result);
         return false;
       }
     }
     list_destroy(&result);
-    *target = error_to_object(error_new(irisErrorSyntaxError));
+    // *target = error_to_object(error_new(irisErrorSyntaxError));
     return false;
   }
   // *target = error_to_object(error_new(irisErrorSyntaxError));
@@ -304,14 +305,19 @@ static bool parse_list(IrisObject* target, size_t* parsed, const char* slice, co
 
 IrisObject string_read(const IrisString source) {
   if (is_encoded_in_utf8(source)) {
-    const char* limit = &source.data[source.len];
-    const char* ptr = source.data;
     IrisList result = list_new();
-    while (ptr != limit) {
-      assert(ptr < limit);
+    if (source.len == 0ULL) {
+      return list_to_object(result);
+    }
+    const char* limit = &source.data[source.len - 1ULL];
+    const char* ptr = source.data;
+    ptr += eat_whitespace(ptr, limit);
+    while (ptr <= limit) {
       ptr += eat_whitespace(ptr, limit);
+      if (ptr > limit) { break; }
       IrisObject obj_parsed;
       size_t chars_parsed;
+      // todo: each call should check for error object return
       if (parse_quote(&obj_parsed, &chars_parsed, ptr, limit) ||
           parse_int(&obj_parsed, &chars_parsed, ptr, limit) ||
           parse_atomic_symbol(&obj_parsed, &chars_parsed, ptr, limit) ||
@@ -321,7 +327,7 @@ IrisObject string_read(const IrisString source) {
         ptr += chars_parsed;
       } else {
         list_destroy(&result);
-        return error_to_object(error_new(irisErrorSyntaxError)); // todo: how to return valuable errors from parse_* functions?
+        return error_to_object(error_new(irisErrorSyntaxError)); // todo: how to return concrete valuable errors from parse_* functions?
       }
     }
     return list_to_object(result);
@@ -336,7 +342,7 @@ static bool try_resolve_macro(IrisObject* target, const IrisList list, const Iri
     if ((leading.kind == irisObjectKindString) && dict_has(scope, leading)) {
       const IrisObject* resolved = dict_get_view(scope, leading);
       if ((resolved->kind == irisObjectKindFunc) && (resolved->func_variant.is_macro == true)) {
-        *target = func_call(resolved->func_variant, &list.items[1], list.len - 1ULL); // todo: what if this returns error?
+        *target = func_call(resolved->func_variant, &list.items[1], list.len - 1ULL);
         return true;
       }
     }
@@ -370,14 +376,17 @@ IrisObject codelist_resolve(const IrisObject obj, const IrisDict scope) {
         for (size_t i = 0ULL; i < obj.list_variant.len; i++) {
           IrisObject resolved = codelist_resolve(obj.list_variant.items[i], scope);
           if (resolved.kind == irisObjectKindError) {
-            list_destroy(&result.list_variant);
+            object_destroy(&result);
             return resolved;
           }
           list_push_object(&result.list_variant, &resolved);
         }
+        // if ((obj.list_variant.len > 0ULL) && (result.list_variant.items[0].kind != irisObjectKindFunc)) {
+        //   object_destroy(&result);
+        //   return error_to_object(error_from_chars(irisErrorNameError, "unknown function name"));
+        // }
         return result;
       }
-      // break;
     }
     default: break;
   }

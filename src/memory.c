@@ -11,6 +11,7 @@
 //       possible reference: https://link.springer.com/content/pdf/10.1007%2F978-3-540-31985-6_10.pdf
 // todo: it's possible to log status and lifetime changes of every allocation
 // todo: something similar to mcheck.h functionalities, we could trace double frees and validity of pointers as allocations
+// todo: debugging memory snapshots? by which you can log what allocations weren't freed between certain start and end point
 
 #ifdef IRIS_COLLECT_MEMORY_METRICS
 // static IrisDict allocations;
@@ -23,7 +24,7 @@ static size_t n_frees = 0ULL;
                                        //       so, info will be quite spoiled
 #endif
 
-bool pointer_is_valid(const void* p) {
+bool pointer_is_valid(const void* p) { // todo: could probably be inlined by #define
   // extern char etext;
   return (p != NULL); // && ((char*) p > &etext);
 }
