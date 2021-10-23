@@ -1,17 +1,8 @@
 #ifndef IRIS_OBJECT_H
 #define IRIS_OBJECT_H
 
-/*
-  Metamorphic object, used in dynamic runtime extensively
-*/
-
-// todo: hide fields of structs from user, objects should be opaque 
-// todo: consistent naming
-// todo: implement vectors and make usage of them in dict implementation?
-
-// todo: identifier symbols should be stored by RefCell as they're highly shared
-//       also on collision we can check whether already existing string under the same name is the same
-//       and handle collisions that way
+// todo: hide fields of structs from user, objects should be opaque
+// todo: compile-time option for size of integer type, for example, IRIS_INT_PORTABLE that forces single size of integers and all architectures
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -50,14 +41,14 @@ typedef struct _IrisObject {
   // homogeneous containers should be proffered
   IrisObjectKind kind;
   union {
-    intmax_t    int_variant;    // todo: there's problem with portability of such integer. possibly we might ensure that size of int should be the same at any platform
+    intmax_t    int_variant;
     float       float_variant;  // todo: use double on x64
     IrisString  string_variant;
     IrisList    list_variant;
     IrisDict    dict_variant;
     IrisFunc    func_variant;
-    IrisError   error_variant;
     IrisRefCell refcell_variant;
+    IrisError   error_variant;
   };
 } IrisObject;
 
@@ -67,6 +58,7 @@ void object_move(IrisObject*);
 bool object_is_valid(const IrisObject);
 bool object_is_none(const IrisObject);
 size_t object_hash(const IrisObject);
+bool object_equal(const IrisObject, const IrisObject);
 
 /*
   @brief  Print object as is, without connection to interpreter semantics

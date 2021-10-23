@@ -17,6 +17,7 @@ typedef struct _IrisList {
 } IrisList;
 
 IrisList list_new(void);
+IrisList list_from_chars_array(int count, const char**);
 IrisList list_copy(const IrisList);
 
 /*
@@ -50,6 +51,9 @@ struct _IrisList list_slice(const IrisList, size_t l, size_t h);
   @brief  Push object to certain position replacing already existing one
 */
 void list_nth_set(IrisList*, size_t idx, struct _IrisObject*);
+
+size_t list_find(const IrisList, const struct _IrisObject);
+bool list_has(const IrisList, const struct _IrisObject);
 
 void list_destroy(IrisList*);
 void list_move(IrisList*);

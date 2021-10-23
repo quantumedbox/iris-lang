@@ -381,6 +381,8 @@ IrisObject codelist_resolve(const IrisObject obj, const IrisDict scope) {
           }
           list_push_object(&result.list_variant, &resolved);
         }
+        // todo: this applies to top-most module body too which isn't desirable
+        //       could fix by implementing function exactly like this, but without checking, but it's not that good
         // if ((obj.list_variant.len > 0ULL) && (result.list_variant.items[0].kind != irisObjectKindFunc)) {
         //   object_destroy(&result);
         //   return error_to_object(error_from_chars(irisErrorNameError, "unknown function name"));

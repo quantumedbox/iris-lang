@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <string.h>
 
 #include "eval.h"
 #include "types/types.h"
@@ -33,7 +35,7 @@ static IrisDict standard_scope; // todo: make it as RefCell of Dict? we would ne
 
 static volatile bool repl_should_exit = false; // todo: shouldn't be here
 
-IrisDict scope_default(IrisList argv_list) {
+IrisDict scope_default(void) {
   IrisDict result = dict_new();
   #define push_to_scope(m_push_by, m_cfunc, m_symbol) {         \
     IrisFunc func = m_push_by(m_cfunc);                         \
@@ -41,12 +43,6 @@ IrisDict scope_default(IrisList argv_list) {
     dict_push_func(&result, string_to_object(symbol), &func);   \
     string_destroy(&symbol);                                    \
   }
-  // argv list
-  IrisString argv_name = string_from_chars("argv"); // todo: kinda lame that we have to create strings for that, there should be way to hash chars
-  IrisObject argv_list_obj = list_to_object(argv_list);
-  IrisObject argv_list_shared = refcell_to_object(refcell_from_object(&argv_list_obj));
-  dict_push_object(&result, string_to_object(argv_name), &argv_list_shared);
-  string_destroy(&argv_name);
 
   // todo: decouple from cimpl.c
   // functions
@@ -72,18 +68,12 @@ IrisDict scope_default(IrisList argv_list) {
   #undef push_to_scope
 }
 
-void eval_module_init(int argc, const char* argv[]) {
+void eval_module_init(void) {
   if (dict_is_valid(standard_scope)) {
     dict_destroy(&standard_scope);
     warning("reconstruction of default scope dictionary");
   }
-  IrisList argv_list = list_new();
-  for (int i = 0; i < argc; i++) {
-    IrisString str = string_from_chars(argv[i]);
-    assert(string_is_valid(str));
-    list_push_string(&argv_list, &str);
-  }
-  standard_scope = scope_default(argv_list);
+  standard_scope = scope_default();
 }
 
 void eval_module_deinit(void) {
@@ -131,6 +121,31 @@ void enter_repl(void) {
   signal(SIGINT, SIG_DFL);
 }
 
+void eval_file(const IrisString filename) {
+  iris_check(filename.len <= PATH_MAX, "filename length exceeded system's limit");
+  char path[filename.len + 1ULL];
+  memcpy(path, filename.data, filename.len * sizeof(char));
+  path[filename.len] = '\0';
+  FILE* file;
+  file = fopen(path, "rb");
+  iris_check(file != NULL, "cannot open file for evaluation");
+  IrisString content = string_from_file(file);
+  fclose(file);
+  IrisObject code = string_read(content);
+  const IrisDict* scope = get_standard_scope_view();
+  IrisObject run = codelist_resolve(code, *scope);
+  if (run.kind != irisObjectKindError) {
+    IrisObject result = eval_codelist(run.list_variant);
+    object_print_repr(result, true);
+    object_destroy(&result);
+  } else {
+    object_print_repr(run, true);
+  }
+  string_destroy(&content);
+  object_destroy(&code);
+  object_destroy(&run);
+}
+
 // todo: define ways of scope modification
 //       it could probably be done by special dicts that have back references to scope from which they inherit
 IrisObject eval_object(const IrisObject obj) {
@@ -138,7 +153,24 @@ IrisObject eval_object(const IrisObject obj) {
   if ((obj.kind == irisObjectKindList) &&
       (obj.list_variant.len > 0ULL) &&
       (obj.list_variant.items[0].kind == irisObjectKindFunc)) {
-    return func_call(obj.list_variant.items[0].func_variant, &obj.list_variant.items[1], obj.list_variant.len - 1ULL);
+    iris_check((obj.list_variant.len - 1ULL) <= IRIS_ARGUMENT_STACK_LIMIT, "argument stack exceeded");
+    IrisObject arguments[obj.list_variant.len - 1ULL];
+    for (size_t i = 1ULL; i < obj.list_variant.len; i++) {
+      IrisObject evaluated = eval_object(obj.list_variant.items[i]);
+      if (evaluated.kind == irisObjectKindError) {
+        for (size_t d = 1ULL; d < i; d++) {
+          object_destroy(&arguments[d - 1ULL]);
+        }
+        return evaluated;
+      }
+      arguments[i - 1ULL] = evaluated;
+    }
+    // todo: what if leading object is not func object but func list? which resolves to a function to be called
+    IrisObject result = func_call(obj.list_variant.items[0].func_variant, arguments, obj.list_variant.len - 1ULL);
+    for (size_t d = 0ULL; d < obj.list_variant.len - 1ULL; d++) {
+      object_destroy(&arguments[d]);
+    }
+    return result;
   }
   return object_copy(obj);
 }

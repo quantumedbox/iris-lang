@@ -45,6 +45,8 @@ size_t string_card(const IrisString);
 */
 char string_nth(const IrisString, size_t idx);
 
+bool string_equal(const IrisString, const IrisString);
+
 void string_destroy(IrisString*);
 void string_move(IrisString*);
 void string_print(const IrisString, bool newline);

@@ -164,6 +164,12 @@ char string_nth(const IrisString str, size_t idx) {
   return str.data[idx];
 }
 
+bool string_equal(const IrisString x, const IrisString y) {
+  assert(string_is_valid(x));
+  assert(string_is_valid(y));
+  return x.hash == y.hash;
+}
+
 void string_destroy(IrisString* str) {
   // currently we set len to inappropriate value for NULL data
   // it's kinda hacky, but works for now 

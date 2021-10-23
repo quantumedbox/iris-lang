@@ -3,13 +3,15 @@
 
 #include "types/types.h"
 
-void eval_module_init(int argc, const char* argv[]);
+void eval_module_init(void);
 void eval_module_deinit(void);
 
 /*
   @warn Should be called after eval_module_init()
 */
 void enter_repl(void);
+
+void eval_file(const IrisString filename);
 
 /*
   @warn Should be called after eval_module_init()

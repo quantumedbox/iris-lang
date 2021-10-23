@@ -17,6 +17,16 @@ IrisList list_new() {
   return result;
 }
 
+IrisList list_from_chars_array(int count, const char** strs) {
+  IrisList result = list_new();
+  for (int i = 0; i < count; i++) {
+    IrisString str = string_from_chars(strs[i]);
+    assert(string_is_valid(str));
+    list_push_string(&result, &str);
+  }
+  return result;
+}
+
 IrisList list_copy(const IrisList list) {
   assert(list_is_valid(list));
   if (list_is_empty(list)) {
@@ -133,6 +143,28 @@ void list_nth_set(IrisList* list, size_t idx, IrisObject* obj) {
   object_destroy(&list->items[idx]);
   list->items[idx] = *obj;
   object_move(obj);
+}
+
+size_t list_find(const IrisList list, const IrisObject obj) {
+  assert(list_is_valid(list));
+  assert(object_is_valid(obj));
+  for (size_t i = 0ULL; i < list.len; i++) {
+    if (object_equal(list.items[i], obj) == true) {
+      return i;
+    }
+  }
+  panic("couldn't find object in list");
+}
+
+bool list_has(const IrisList list, const IrisObject obj) {
+  assert(list_is_valid(list));
+  assert(object_is_valid(obj));
+  for (size_t i = 0ULL; i < list.len; i++) {
+    if ((obj.kind == list.items[i].kind) && (object_equal(list.items[i], obj) == true)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void list_destroy(IrisList* list) {

@@ -27,6 +27,7 @@
   @variants (0)
 */
 static IrisObject cimpl_metrics(const IrisObject* args, size_t arg_count) {
+  (void)args;
   if (arg_count != 0ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }

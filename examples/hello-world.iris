@@ -1,4 +1,1 @@
 (echo "hello-world")
-
-; alternatively it will print too, but only in repl
-"hello-world"

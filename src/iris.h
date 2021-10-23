@@ -7,9 +7,9 @@
 #include "memory.h"
 #include "utils.h"
 
-#define IRIS_VERSION "0.01:a"
+#define IRIS_VERSION "0.01:b"
 
-void iris_init(int argc, const char* argv[]);
+void iris_init(void);
 void iris_deinit(void);
 
 #endif

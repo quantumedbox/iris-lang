@@ -2,9 +2,9 @@
 #include "eval.h"
 #include "utils.h"
 
-void iris_init(int argc, const char* argv[]) {
+void iris_init() {
   init_error_module();
-  eval_module_init(argc, argv);
+  eval_module_init();
 }
 
 void iris_deinit(void) {

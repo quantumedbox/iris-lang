@@ -129,6 +129,18 @@ void object_destroy(IrisObject* obj) {
   }
 }
 
+bool object_equal(const IrisObject x, const IrisObject y) {
+  assert(object_is_valid(x));
+  assert(object_is_valid(y));
+  iris_check(x.kind == y.kind, "attempt to compare objects of different kinds");
+  switch (x.kind) {
+    case irisObjectKindString:
+      return string_equal(x.string_variant, y.string_variant);
+    default:
+      panic("equal comparison for object variant isn't defined");
+  }
+}
+
 void object_print(const IrisObject obj, bool newline) {
   assert(object_is_valid(obj));
   switch (obj.kind) {
