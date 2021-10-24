@@ -4,16 +4,15 @@
 #include "types/types.h"
 #include "utils.h"
 
-// todo: make it array instead as type do correlate with indexes
-static IrisDict error_desc = {0};
-static unsigned int error_enum = IRIS_USER_ERRORS;
+static IrisString error_desc_table[IRIS_N_BUILTIN_ERRORS]; // todo: make it growable?
 
 void init_error_module(void) {
-  #define init_error_module_push_desc(type, desc) {           \
-    IrisString str = string_from_chars(desc);                 \
-    dict_push_string(&error_desc, int_to_object(type), &str); \
+  size_t desc_specified = 0ULL;
+  #define init_error_module_push_desc(type, desc) {   \
+    assert(type < IRIS_N_BUILTIN_ERRORS);             \
+    error_desc_table[type] = string_from_chars(desc); \
+    desc_specified++;                                 \
   }
-  error_desc = dict_new();
   init_error_module_push_desc(irisErrorNoError,           "NoError");
   init_error_module_push_desc(irisErrorTypeError,         "TypeError");
   init_error_module_push_desc(irisErrorContractViolation, "ContractViolation");
@@ -23,15 +22,13 @@ void init_error_module(void) {
   init_error_module_push_desc(irisErrorUnderflowError,    "UnderflowError");
   init_error_module_push_desc(irisErrorEncodingError,     "EncodingError");
   init_error_module_push_desc(irisErrorStackError,        "StackError");
-  init_error_module_push_desc(irisErrorUserError,         "UserError");
-  iris_check(error_desc.card == IRIS_USER_ERRORS, "error description missed");
+  iris_check(desc_specified == IRIS_N_BUILTIN_ERRORS, "error description table isn't fully formed");
+  #undef init_error_module_push_desc
 }
 
 void deinit_error_module(void) {
-  if (dict_is_valid(error_desc)) {
-    dict_destroy(&error_desc);
-  } else {
-    panic("error description dictionary is ill-formed");
+  for (size_t i = 0ULL; i < IRIS_N_BUILTIN_ERRORS; i++) {
+    string_destroy(&error_desc_table[i]);
   }
 }
 
@@ -76,9 +73,10 @@ void error_move(IrisError* err) {
 }
 
 void error_print_repr(const IrisError err, bool newline) {
-  assert((err.type < error_enum) && (err.type >= irisErrorNoError));
-  const IrisObject* desc = dict_get_view(error_desc, int_to_object(err.type)); // will fail if errtype isn't implemented
-  string_print(desc->string_variant, false);
+  assert(err.type < IRIS_N_BUILTIN_ERRORS);
+  IrisString desc = error_desc_table[err.type];
+  assert(string_is_valid(desc) && !string_is_empty(desc));
+  string_print(desc, false);
   if (!string_is_empty(err.msg)) {
     (void)fputs(": ", stdout);
     string_print(err.msg, false);

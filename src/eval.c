@@ -10,10 +10,11 @@
 
 #include "eval.h"
 #include "types/types.h"
+#include "iris_inter.h"
 #include "reader.h"
 #include "memory.h"
 #include "utils.h"
-#include "iris.h"
+#include "misc.h"
 
 // todo: evaluation of "quote" lists returned from other lists
 //       maybe it could some sort of "delayed" promise? that should be computed on evaluation
@@ -137,7 +138,12 @@ void eval_file(const IrisString filename) {
   if (code.kind != irisObjectKindError) {
     IrisObject torun = codelist_resolve(code, *scope);
     if (torun.kind != irisObjectKindError) {
-      IrisObject result = eval_codelist(torun.list_variant);
+      IrisInterHandle inter = inter_new();
+      if (inter_eval_codelist(&inter, &torun.list_variant) == false) {
+        panic("couldn't start interpreter");
+      }
+      IrisObject result = inter_result(&inter);
+      inter_destroy(&inter);
       if (result.kind == irisObjectKindError) {
         (void)fputs(ANSI_ESCAPE_ERROR"evaluation error:"ANSI_ESCAPE_RESET" ", stderr);
         object_print_repr(result, true);
@@ -147,7 +153,6 @@ void eval_file(const IrisString filename) {
       (void)fputs(ANSI_ESCAPE_ERROR"resolving error:"ANSI_ESCAPE_RESET" ", stderr);
       object_print_repr(torun, true);
     }
-    object_destroy(&torun);
   } else {
     (void)fputs(ANSI_ESCAPE_ERROR"reader error:"ANSI_ESCAPE_RESET" ", stderr);
     object_print_repr(code, true);
@@ -188,7 +193,7 @@ IrisObject eval_object(const IrisObject obj) {
 IrisObject eval_codelist(const IrisList list) {
   assert(list_is_valid(list));
   if (list.len == 0ULL) {
-    return (IrisObject){0}; // None
+    return (IrisObject){0}; // nil
   }
   for (size_t i = 0ULL; i < (list.len - 1ULL); i++) {
     IrisObject result = eval_object(list.items[i]);

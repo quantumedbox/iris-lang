@@ -33,12 +33,7 @@ typedef enum {
 
   irisErrorStackError,
 
-  /*
-    Unspecified error that might be used for signaling error messages of API
-  */
-  irisErrorUserError,
-
-  IRIS_USER_ERRORS // after this user is free to define new errors
+  IRIS_N_BUILTIN_ERRORS
 } IrisErrorType;
 
 typedef struct _IrisError {

@@ -105,7 +105,7 @@ void object_destroy(IrisObject* obj) {
   assert(object_is_valid(*obj));
   switch (obj->kind) {
     case irisObjectKindNone:
-      // panic("attempt to destroy None"); // todo: should it just silently escape?
+      // panic("attempt to destroy nil"); // todo: should it just silently escape?
       break;
     case irisObjectKindInt: break;
     case irisObjectKindFloat: break;
@@ -145,7 +145,7 @@ void object_print(const IrisObject obj, bool newline) {
   assert(object_is_valid(obj));
   switch (obj.kind) {
     case irisObjectKindNone:
-      (void)fputs("None", stdout);
+      (void)fputs("nil", stdout);
       if (newline) { (void)fputc('\n', stdout); }
       fflush(stdout);
       break;
@@ -183,7 +183,7 @@ void object_print_repr(const IrisObject obj, bool newline) {
   assert(object_is_valid(obj));
   switch (obj.kind) {
     case irisObjectKindNone:
-      (void)fputs("None", stdout);
+      (void)fputs("nil", stdout);
       if (newline) { (void)fputc('\n', stdout); }
       fflush(stdout);
       break;

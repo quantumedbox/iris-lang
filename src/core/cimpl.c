@@ -32,7 +32,7 @@ static IrisObject cimpl_metrics(const IrisObject* args, size_t arg_count) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
   iris_metrics_print_repr(); // todo: return it as string?
-  return (IrisObject){0}; // None
+  return (IrisObject){0}; // nil
 }
 
 // todo: something more poetic?
@@ -102,7 +102,7 @@ static IrisObject cimpl_echo(const IrisObject* args, size_t arg_count) {
     object_print_repr(args[i], false);
   }
   if (arg_count != 0ULL) (void)fputc('\n', stdout);
-  return (IrisObject){0}; // None
+  return (IrisObject){0}; // nil
 }
 
 static IrisObject cimpl_first(const IrisObject* args, size_t arg_count) {
@@ -116,7 +116,7 @@ static IrisObject cimpl_first(const IrisObject* args, size_t arg_count) {
     IrisObject copy = object_copy(args[0].list_variant.items[0]);
     return copy;
   } else {
-    return (IrisObject){0}; // None
+    return (IrisObject){0}; // nil
   }
 }
 
@@ -136,7 +136,7 @@ static IrisObject cimpl_rest(const IrisObject* args, size_t arg_count) {
 
 // todo: it may leak memory if body tries to return allocated object
 /*
-  @brief    Macro for evaluating body n times, results of evaluations are dropped, returns None
+  @brief    Macro for evaluating body n times, results of evaluations are dropped, returns nil
   @variants (2: int body)
 */
 // static IrisObject cimpl_repeat_eval(const IrisObject* args, size_t arg_count) {
@@ -154,7 +154,7 @@ static IrisObject cimpl_rest(const IrisObject* args, size_t arg_count) {
 //     }
 //     object_destroy(&something);
 //   }
-//   return (IrisObject){0}; // None
+//   return (IrisObject){0}; // nil
 // }
 
 /*

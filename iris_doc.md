@@ -6,9 +6,8 @@ todo:
 - user defined functions
 - static analysis
 - transpilation
-- interface to define builtin functions via iris syntax
+- interface to define builtin functions via iris syntax itself
 - function interface to work with builtin types
-- defined type system
 - compilation to shared objects, usage of iris as statically linkable module
 
 goals:

@@ -17,7 +17,7 @@
 //       '("shit shit") -> '(quote "shit shit") -- will produce quoted string instead
 //       one possible solution is to require quoting by ' and "" strings will be just strings
 //       ' "this" -- but it's not very ergonomic, especially when written as '"this"
-// todo: parse None // todo: maybe change to 'nil' ?
+// todo: parse nil // todo: maybe change to 'nil' ?
 
 // #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough, but might be problematic in the future
 
@@ -27,7 +27,6 @@ __forceinline bool is_whitespace(char ch) {
   if (utf8_codepoint_width(ch) != 1U) {
     return false;
   }
-
   switch (ch) {
     case  9: return true;
     case 10: return true;
