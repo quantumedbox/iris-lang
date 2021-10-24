@@ -16,12 +16,12 @@ struct _IrisFunc;
 struct _IrisError;
 struct _IrisRefCell;
 
-#include "types/list.h"
-#include "types/string.h"
-#include "types/dict.h"
-#include "types/func.h"
-#include "types/error.h"
-#include "types/refcell.h"
+#include "types/iris_list.h"
+#include "types/iris_string.h"
+#include "types/iris_dict.h"
+#include "types/iris_func.h"
+#include "types/iris_error.h"
+#include "types/iris_refcell.h"
 
 typedef enum {
   irisObjectKindNone,

@@ -1,11 +1,11 @@
-#include <string.h>
+#include <types/iris_string.h>
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
 
-#include "types/types.h"
-#include "utils.h"
-#include "memory.h"
+#include "types/iris_types.h"
+#include "iris_utils.h"
+#include "iris_memory.h"
 
 #define LIST_GROW_N 4ULL
 static_assert(LIST_GROW_N > 0ULL, "list item grow amount shouldn't be 0");

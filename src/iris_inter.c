@@ -3,10 +3,10 @@
 #include <assert.h>
 
 #include "iris_inter.h"
-#include "eval.h"
-#include "types/types.h"
-#include "memory.h"
-#include "utils.h"
+#include "iris_eval.h"
+#include "types/iris_types.h"
+#include "iris_memory.h"
+#include "iris_utils.h"
 
 typedef struct _IrisInterThread {
   // handle on which interpreter caller can interact with started interpreter instance

@@ -5,6 +5,6 @@
 //       so we have to import them relative to it
 //       maybe there's better way to resolve this, for example don't implement IrisObject related functionalities
 //       when IRIS_OBJECT_H isn't defined or something
-#include "types/object.h"
+#include "types/iris_object.h"
 
 #endif

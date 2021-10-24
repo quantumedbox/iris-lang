@@ -1,10 +1,10 @@
-#include <string.h>
+#include <types/iris_string.h>
 #include <stdio.h>
 #include <assert.h>
 
-#include "types/types.h"
-#include "utils.h"
-#include "memory.h"
+#include "types/iris_types.h"
+#include "iris_utils.h"
+#include "iris_memory.h"
 
 #define DICT_PREALLOC 4U
 #define DICT_GROW_FACTOR 4U // == 1 - (1 / 4) // capacity multiplies by two when factor is equal or greater than cardinality

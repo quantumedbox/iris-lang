@@ -1,6 +1,6 @@
 #include "iris.h"
-#include "eval.h"
-#include "utils.h"
+#include "iris_eval.h"
+#include "iris_utils.h"
 
 void iris_init() {
   init_error_module();

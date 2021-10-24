@@ -1,8 +1,8 @@
 #include <assert.h>
 
-#include "types/types.h"
-#include "memory.h"
-#include "utils.h"
+#include "types/iris_types.h"
+#include "iris_memory.h"
+#include "iris_utils.h"
 
 IrisFunc func_from_cfunc(IrisFuncPrototype cfunc) {
   assert(pointer_is_valid(cfunc));

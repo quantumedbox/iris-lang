@@ -1,7 +1,7 @@
 #ifndef IRIS_UTF8_H
 #define IRIS_UTF8_H
 
-#include "utils.h"
+#include "iris_utils.h"
 
 /*
   @brief  Check to what codepoint width given octet corresponds

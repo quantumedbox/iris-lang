@@ -2,18 +2,18 @@
 #include <stdio.h>
 #include <assert.h>
 
-// todo: it's not very good that header of this file is colliding with <string.h>
-//       we're using it by "types/string.h" for now, but it might be problematic in the future
+// todo: it's not very good that header of this file is colliding with <types/iris_string.h>
+//       we're using it by "types/iris_string.h" for now, but it might be problematic in the future
 
 // todo: when reading from file stream there's no way to singal status of reading to caller,
 //       we should consider some way to do so
 
 // todo: should they be cached on creation or only on first hash request?
 
-#include "types/types.h"
+#include "types/iris_types.h"
 #include "iris_utf8.h"
-#include "memory.h"
-#include "utils.h"
+#include "iris_memory.h"
+#include "iris_utils.h"
 
 #define STRING_PREALLOC 8U
 static_assert(STRING_PREALLOC > 0U, "string preallocation shouldn't be 0");

@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <stdbool.h>
 
-#include "utils.h"
+#include "iris_utils.h"
 
 // todo: make checks inlined and with usage of __LINE__ / __FILE__ /__PRETTY_FUNCTION__ ?
 

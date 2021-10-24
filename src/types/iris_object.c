@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "types/object.h"
-#include "utils.h"
+#include "types/iris_object.h"
+#include "iris_utils.h"
 
 struct _IrisObject object_copy(const struct _IrisObject obj) {
   assert(object_is_valid(obj));

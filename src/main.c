@@ -1,5 +1,5 @@
 #include "iris.h"
-#include "misc.h"
+#include "iris_misc.h"
 
 // todo: argv list should be used for calling builtin "run"
 //       this should create new instance of interpreter that runs depending on contents of argv

@@ -1,12 +1,12 @@
-#include <string.h>
+#include <types/iris_string.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
 
-#include "reader.h"
-#include "types/types.h"
+#include "iris_reader.h"
+#include "types/iris_types.h"
 #include "iris_utf8.h"
-#include "utils.h"
+#include "iris_utils.h"
 
 // todo: maybe some compile-time options? such as ability to define custom symbols or turning off quoting and such
 // todo: require spaces between in-list objects

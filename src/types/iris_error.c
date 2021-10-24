@@ -1,8 +1,8 @@
 #include <assert.h>
 
-#include "error.h"
-#include "types/types.h"
-#include "utils.h"
+#include "iris_error.h"
+#include "types/iris_types.h"
+#include "iris_utils.h"
 
 static IrisString error_desc_table[IRIS_N_BUILTIN_ERRORS]; // todo: make it growable?
 

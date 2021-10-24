@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "memory.h"
-#include "types/types.h"
-#include "utils.h"
+#include "iris_memory.h"
+#include "types/iris_types.h"
+#include "iris_utils.h"
 
 // todo: thread-local memory treatment might be beneficial for running interpreter instances concurrently
 //       possible reference: https://link.springer.com/content/pdf/10.1007%2F978-3-540-31985-6_10.pdf

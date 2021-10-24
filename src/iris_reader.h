@@ -1,7 +1,7 @@
 #ifndef IRIS_READER_H
 #define IRIS_READER_H
 
-#include "types/types.h"
+#include "types/iris_types.h"
 
 // typedef IrisList (*IrisReader)(IrisString);
 

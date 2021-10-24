@@ -6,11 +6,11 @@
 #include <time.h>
 #include <stdint.h>
 
-#include "eval.h"
-#include "types/types.h"
-#include "reader.h"
-#include "memory.h"
-#include "utils.h"
+#include "iris_eval.h"
+#include "types/iris_types.h"
+#include "iris_reader.h"
+#include "iris_memory.h"
+#include "iris_utils.h"
 
 // todo: should we automatically convert types? for example when mixing integers and floats
 // todo: resolving symbol in reader might be a better way

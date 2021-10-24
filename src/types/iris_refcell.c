@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "types/types.h"
-#include "memory.h"
+#include "types/iris_types.h"
+#include "iris_memory.h"
 
 IrisRefCell refcell_from_object(IrisObject* obj) {
   assert(object_is_valid(*obj));

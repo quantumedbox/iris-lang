@@ -8,13 +8,13 @@
 #include <limits.h>
 #include <string.h>
 
-#include "eval.h"
-#include "types/types.h"
+#include "iris_eval.h"
+#include "types/iris_types.h"
 #include "iris_inter.h"
-#include "reader.h"
-#include "memory.h"
-#include "utils.h"
-#include "misc.h"
+#include "iris_reader.h"
+#include "iris_memory.h"
+#include "iris_utils.h"
+#include "iris_misc.h"
 
 // todo: evaluation of "quote" lists returned from other lists
 //       maybe it could some sort of "delayed" promise? that should be computed on evaluation

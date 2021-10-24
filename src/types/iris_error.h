@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "types/string.h"
+#include "types/iris_string.h"
 
 typedef enum {
   irisErrorNoError,
