@@ -10,10 +10,13 @@
 
 // todo: should they be cached on creation or only on first hash request?
 
+// todo: access of runes / individual characters
+// todo: search in utf8 encoded string might be done from the end if end is closer to sought-for rune
+
 #include "types/iris_types.h"
-#include "iris_utf8.h"
 #include "iris_memory.h"
 #include "iris_utils.h"
+#include "iris_utf8.h"
 
 #define STRING_PREALLOC 8U
 static_assert(STRING_PREALLOC > 0U, "string preallocation shouldn't be 0");
@@ -146,12 +149,25 @@ bool string_compare(const IrisString x, const IrisString y) {
     return false;
   }
   for (size_t i = 0ULL; i < x.len; i++) {
-    if (x.data[i] != y.data[y]) {
+    if (x.data[i] != y.data[i]) {
       return false;
     }
   }
   return true;
   #endif
+}
+
+bool string_compare_chars(const IrisString str, const char* chars) {
+  size_t len = strlen(chars);
+  if (len != str.len) {
+    return false;
+  }
+  for (size_t i = 0ULL; i < len; i++) {
+    if (str.data[i] != chars[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 size_t string_card(const IrisString str) {
@@ -188,19 +204,21 @@ void string_move(IrisString* str) {
 }
 
 void string_print(const IrisString str, bool newline) {
-  (void)fprintf(stdout, "%.*s", (int)str.len, str.data);
-  if (newline) { (void)fputc('\n', stdout); }
+  (void)fwrite((const void*)str.data, sizeof(char), str.len, stdout);
+  if (newline) (void)fputc('\n', stdout);
   fflush(stdout);
 }
 
 void string_print_repr(const IrisString str, bool newline) {
-  (void)fprintf(stdout, "\"%.*s\"", (int)str.len, str.data);
-  if (newline) { (void)fputc('\n', stdout); }
+  (void)fputc('"', stdout);
+  (void)fwrite((const void*)str.data, sizeof(char), str.len, stdout);
+  (void)fputc('"', stdout);
+  if (newline) (void)fputc('\n', stdout);
   fflush(stdout);
 }
 
 void string_print_internal(const IrisString str, bool newline) {
   (void)fprintf(stdout, "<string | bytes: \"%.*s\" : len: %llu, hash: %llu)", (int)str.len, str.data, str.len, str.hash);
-  if (newline) { (void)fputc('\n', stdout); }
+  if (newline) (void)fputc('\n', stdout);
   fflush(stdout);
 }

@@ -26,21 +26,25 @@ void iris_check_warn(bool status, const char* msg) {
 
 noreturn void errno_panic() {
   (void)fprintf(stderr, "program panicked with %d errno value\n", errno);
+  fflush(stderr);
   exit(1);
 }
 
 noreturn void ferror_panic(FILE* file) {
   (void)fprintf(stderr, "program panicked on file operation with %d value\n", ferror(file));
+  fflush(stderr);
   exit(1);
 }
 
 noreturn void panic(const char* msg) {
   iris_check(msg != NULL, "NULL passed as panic message");
   (void)fprintf(stderr, "program panicked with message: \"%s\"\n", msg);
+  fflush(stderr);
   exit(1);
 }
 
 void warning(const char* msg) {
   iris_check(msg != NULL, "NULL passed as panic message");
   (void)fprintf(stderr, "warning! %s\n", msg);
+  fflush(stderr);
 }

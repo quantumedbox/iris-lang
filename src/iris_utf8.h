@@ -20,7 +20,7 @@ __forceinline unsigned int utf8_codepoint_width(char ch) {
   panic("invalid utf8 codepoint");
 }
 
-// todo: skip BOM?
+// todo: skip BOM? windows is bitch with it
 __forceinline bool utf8_check_validity(const IrisString str) {
   const char* ptr = str.data;
   while (ptr < &str.data[str.len]) {
@@ -45,8 +45,8 @@ __forceinline bool utf8_check_validity(const IrisString str) {
   return true;
 }
 
-__forceinline int utf8_count_chars(const IrisString str) {
-  int result = 0;
+__forceinline size_t utf8_count_chars(const IrisString str) {
+  size_t result = 0;
   const char* ptr = str.data;
   while (ptr < &str.data[str.len]) {
     ptr += utf8_codepoint_width(*ptr);

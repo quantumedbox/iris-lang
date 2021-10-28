@@ -37,6 +37,7 @@ IrisString string_from_view(const char* low, const char* high);
 bool string_is_valid(const IrisString);
 bool string_is_empty(const IrisString);
 bool string_compare(const IrisString, const IrisString);
+bool string_compare_chars(const IrisString, const char*);
 size_t string_card(const IrisString);
 
 /*

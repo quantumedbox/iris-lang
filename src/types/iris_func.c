@@ -79,12 +79,14 @@ void func_print_internal(const IrisFunc func, bool newline) {
     case irisFuncTypeC:
       (void)fprintf(stdout, "<callable | cfunc: %p>", func.cfunc);
       if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
       break;
     case irisFuncTypeList:
       (void)fprintf(stdout, "<callable | codedata: ");
       list_print_repr(func.codedata, false);
       (void)fputc('>', stdout);
       if (newline) { (void)fputc('\n', stdout); }
+      fflush(stdout);
       break;
     default:
       panic("internal printing for function variant unspecified");

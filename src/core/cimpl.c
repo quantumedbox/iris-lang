@@ -18,6 +18,7 @@
 // todo: prefix with 'cimpl'
 // todo: they're bodged as hell, should standardize the way they're implemented
 // todo: those things should be generated, not written manually. at least huge portion of it
+// todo: arithmetic operations should be redone
 
 // In-Iris alternative:
 // >>> (defn metrics []
@@ -236,80 +237,40 @@ static IrisObject cimpl_rest(const IrisObject* args, size_t arg_count) {
 //   return cell[0];
 // }
 
-// todo: should we even allow different types of operands to be used?
-// todo: overflowing and underflowing guards
 // todo: probably separate float function, also, we need to care a bit about exceptions:
 //       https://en.wikipedia.org/wiki/C_mathematical_functions#Floating-point_environment
-// todo: problem with current error handling is that it invalidates passed data on error
-//       sometimes we might want to have ability to save it, tho, probably it's solvable by
-//       utilizing the fact that caller still have the ownership over original args in any resolution of callee 
-/*
-  @brief    Addition operation
-            Promotes integers to floats if one of arg is float
-  @return   Float | Int
-  @variants (2: (float | int) (float | int))
-*/
 static IrisObject cimpl_add(const IrisObject* args, size_t arg_count) {
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
   assert(pointer_is_valid(args));
-  if ((args[0].kind != irisObjectKindInt) && (args[0].kind != irisObjectKindFloat)) {
+  if ((args[0].kind != irisObjectKindInt) || (args[1].kind != irisObjectKindInt)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }
-  if ((args[1].kind != irisObjectKindInt) && (args[1].kind != irisObjectKindFloat)) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
+  if (args[0].int_variant > INTMAX_MAX - args[1].int_variant) {
+    return error_to_object(error_new(irisErrorOverflowError));
   }
-  if (args[0].kind != args[1].kind) {
-    return (IrisObject){
-      .kind = irisObjectKindFloat,
-      .float_variant =
-        ((args[0].kind == irisObjectKindInt) ? (float)args[0].int_variant : args[0].float_variant) +
-        ((args[1].kind == irisObjectKindInt) ? (float)args[1].int_variant : args[1].float_variant)
-    };
-  } else {
-    return (IrisObject){
-      .kind = args[0].kind,
-      .int_variant =
-        ((args[0].kind == irisObjectKindInt) ? args[0].int_variant : args[0].float_variant) +
-        ((args[1].kind == irisObjectKindInt) ? args[1].int_variant : args[1].float_variant)
-    };
+  if (args[0].int_variant < INTMAX_MIN - args[1].int_variant) {
+    return error_to_object(error_new(irisErrorUnderflowError));
   }
+  return int_to_object(args[0].int_variant + args[1].int_variant);
 }
 
-// todo: overflowing and underflowing guards
 // todo: probably separate float function, also, we need to care a bit about exceptions:
 //       https://en.wikipedia.org/wiki/C_mathematical_functions#Floating-point_environment
-/*
-  @brief    Subtraction operation
-            Promotes integers to floats if one of arg is float
-  @return   Float | Int
-  @variants (2: (float | int) (float | int))
-*/
 static IrisObject cimpl_sub(const IrisObject* args, size_t arg_count) {
   if (arg_count != 2ULL) {
     return error_to_object(error_from_chars(irisErrorContractViolation, "invalid argument count"));
   }
   assert(pointer_is_valid(args));
-  if ((args[0].kind != irisObjectKindInt) && (args[0].kind != irisObjectKindFloat)) {
+  if ((args[0].kind != irisObjectKindInt) || (args[1].kind != irisObjectKindInt)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }
-  if ((args[1].kind != irisObjectKindInt) && (args[1].kind != irisObjectKindFloat)) {
-    return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
+  if (args[0].int_variant < INTMAX_MIN + args[1].int_variant) {
+    return error_to_object(error_new(irisErrorUnderflowError));
   }
-  if (args[0].kind != args[1].kind) {
-    return (IrisObject){
-      .kind = irisObjectKindFloat,
-      .float_variant =
-        ((args[0].kind == irisObjectKindInt) ? (float)args[0].int_variant : args[0].float_variant) -
-        ((args[1].kind == irisObjectKindInt) ? (float)args[1].int_variant : args[1].float_variant)
-    };
-  } else {
-    return (IrisObject){
-      .kind = args[0].kind,
-      .int_variant =
-        ((args[0].kind == irisObjectKindInt) ? args[0].int_variant : args[0].float_variant) -
-        ((args[1].kind == irisObjectKindInt) ? args[1].int_variant : args[1].float_variant)
-    };
+  if (args[0].int_variant < INTMAX_MIN + args[1].int_variant) {
+    return error_to_object(error_new(irisErrorUnderflowError));
   }
+  return int_to_object(args[0].int_variant - args[1].int_variant);
 }

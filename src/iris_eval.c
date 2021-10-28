@@ -34,8 +34,7 @@ const char* repl_welcome_msg =
   "| ctrl+c or (quit) for exit\n";
 
 static IrisDict standard_scope; // todo: make it as RefCell of Dict? we would need it if we want to go full "meta" and have ability to retrieve it
-
-static volatile bool repl_should_exit = false; // todo: shouldn't be here
+static volatile bool repl_should_exit = false; // todo: make it a stack
 
 IrisDict scope_default(void) {
   IrisDict result = dict_new();
@@ -106,6 +105,7 @@ void enter_repl(void) {
   (void)fputs(repl_welcome_msg, stdout);
   while (!repl_should_exit) {
     (void)fputs(">>> ", stdout);
+    fflush(stdout);
     IrisString line = string_from_file_line(stdin);
     IrisObject code = string_read(line);
     IrisObject torun = codelist_resolve(code, *scope);

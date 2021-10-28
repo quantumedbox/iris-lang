@@ -15,6 +15,7 @@ struct _IrisDict;
 struct _IrisFunc;
 struct _IrisError;
 struct _IrisRefCell;
+struct _IrisClass;
 
 #include "types/iris_list.h"
 #include "types/iris_string.h"
@@ -33,6 +34,7 @@ typedef enum {
   irisObjectKindString,
   irisObjectKindList,
   irisObjectKindDict,
+  // irisObjectKindClass, // todo: object type that has runtime created archetype
   N_OBJECT_KINDS
 } IrisObjectKind;
 
@@ -49,6 +51,7 @@ typedef struct _IrisObject {
     IrisFunc    func_variant;
     IrisRefCell refcell_variant;
     IrisError   error_variant;
+    // IrisClass   class_variant;
   };
 } IrisObject;
 

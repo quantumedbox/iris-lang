@@ -8,18 +8,10 @@
 #include "iris_utf8.h"
 #include "iris_utils.h"
 
-// todo: maybe some compile-time options? such as ability to define custom symbols or turning off quoting and such
 // todo: require spaces between in-list objects
-//       there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
+// todo: there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
 // todo: floats
-// todo: problem with strings in quoted lists:
-//       '(shit) -> ("shit") -- this works, but if you want to have string that contains spaces
-//       '("shit shit") -> '(quote "shit shit") -- will produce quoted string instead
-//       one possible solution is to require quoting by ' and "" strings will be just strings
-//       ' "this" -- but it's not very ergonomic, especially when written as '"this"
-// todo: parse nil // todo: maybe change to 'nil' ?
-
-// #define LIST_RECURSION_PARSE_LIMIT 1028 // for now it's more than enough, but might be problematic in the future
+// todo: catching errors from sub-parse functions
 
 static bool parse_list(IrisObject*, size_t*, const char*, const char*);
 

@@ -93,5 +93,6 @@ void iris_metrics_print_repr() {
   (void)fprintf(stdout, "resizes: %llu\n", n_resizes);
   #else
   (void)fputs("--- memory metrics: no data was collected as collection was turned off on compilation, pass -DIRIS_COLLECT_MEMORY_METRICS to enable\n", stdout);
+  fflush(stdout);
   #endif
 }
