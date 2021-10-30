@@ -22,7 +22,7 @@
 // todo: (help)
 // todo: (doc <symbol>)
 // todo: (for [binding list [binding list ...]] body) -- iteration over list
-// todo: call stack for debugging
+// todo: call stack for debugging, _Thread_local
 
 #define IRIS_ARGUMENT_STACK_LIMIT 32
 

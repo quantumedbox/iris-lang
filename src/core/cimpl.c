@@ -247,13 +247,15 @@ static IrisObject cimpl_add(const IrisObject* args, size_t arg_count) {
   if ((args[0].kind != irisObjectKindInt) || (args[1].kind != irisObjectKindInt)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }
-  if (args[0].int_variant > INTMAX_MAX - args[1].int_variant) {
+  intmax_t x = args[0].int_variant;
+  intmax_t y = args[1].int_variant;
+  if ((x > 0) && (x > INTMAX_MAX - y)) {
     return error_to_object(error_new(irisErrorOverflowError));
   }
-  if (args[0].int_variant < INTMAX_MIN - args[1].int_variant) {
+  if ((x < 0) && (x < INTMAX_MIN - y)) {
     return error_to_object(error_new(irisErrorUnderflowError));
   }
-  return int_to_object(args[0].int_variant + args[1].int_variant);
+  return int_to_object(x + y);
 }
 
 // todo: probably separate float function, also, we need to care a bit about exceptions:
@@ -266,11 +268,13 @@ static IrisObject cimpl_sub(const IrisObject* args, size_t arg_count) {
   if ((args[0].kind != irisObjectKindInt) || (args[1].kind != irisObjectKindInt)) {
     return error_to_object(error_from_chars(irisErrorTypeError, "invalid argument"));
   }
-  if (args[0].int_variant < INTMAX_MIN + args[1].int_variant) {
+  intmax_t x = args[0].int_variant;
+  intmax_t y = args[1].int_variant;
+  if ((x < 0) && (x > INTMAX_MAX + y)) {
+    return error_to_object(error_new(irisErrorOverflowError));
+  }
+  if ((x > 0) && (x < INTMAX_MIN + y)) {
     return error_to_object(error_new(irisErrorUnderflowError));
   }
-  if (args[0].int_variant < INTMAX_MIN + args[1].int_variant) {
-    return error_to_object(error_new(irisErrorUnderflowError));
-  }
-  return int_to_object(args[0].int_variant - args[1].int_variant);
+  return int_to_object(x - y);
 }
