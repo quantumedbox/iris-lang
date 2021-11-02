@@ -1,4 +1,3 @@
-#include <types/iris_string.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
@@ -8,10 +7,10 @@
 #include "iris_utf8.h"
 #include "iris_utils.h"
 
-// todo: require spaces between in-list objects
-// todo: there's no need to allocate 'quote' strings over and over again, for example, it's really wasteful
+// todo: require spaces between in-list objects?
+//       it could be optional for easier creation of code in hosts
+//       tho possibly you should not enter code as text, but create it as lists from the start
 // todo: floats
-// todo: catching errors from sub-parse functions
 
 typedef enum {
   psAbort, // returned on failure without error
@@ -87,16 +86,10 @@ static size_t eat_whitespace(const char* slice, const char* limit) {
 }
 
 static ParseStatus parse_int(IrisObject* target, size_t* parsed, const char* slice, const char* limit) {
-  // todo: this macro usage is kinda bad as it operates on variables from outside its definition
   assert(slice <= limit);
   assert(target != NULL);
   assert(parsed != NULL);
   const char* ptr = slice;
-  if (ascii_cmp(*ptr, '0')) {
-    *target = (IrisObject){ .kind = irisObjectKindInt, .int_variant = 0 };
-    *parsed = 1ULL;
-    return true;
-  }
   bool is_negative = false;
   if (ascii_cmp(*ptr, '-')) {
     is_negative = true;
@@ -104,10 +97,17 @@ static ParseStatus parse_int(IrisObject* target, size_t* parsed, const char* sli
     if (ptr > limit)
       return psAbort;
   }
+  if (ascii_cmp(*ptr, '0')) {
+    ptr++;
+    *target = (IrisObject){ .kind = irisObjectKindInt, .int_variant = 0 };
+    *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
+    return psResult;
+  }
   if ((utf8_codepoint_width(*ptr) == 1U) && (*ptr >= '1') && (*ptr <= '9')) {
     IrisObject result = { .kind = irisObjectKindInt, .int_variant = (*ptr - '0') };
     ptr++;
     while ((ptr <= limit) && (utf8_codepoint_width(*ptr) == 1U) && (*ptr >= '0') && (*ptr <= '9')) {
+      // todo: we should not check result, but predict overflow / underflow beforehand
       intmax_t check = result.int_variant;
       result.int_variant = result.int_variant * 10 + (*ptr - '0');
       if (check >= result.int_variant) { // todo: lower bound truncates incorrectly
@@ -188,21 +188,26 @@ static ParseStatus parse_quote(IrisObject* target, size_t* parsed, const char* s
     list_push_string(&result, &quote_sym);
     IrisObject obj_parsed;
     size_t chars_parsed;
-    if (parse_quote(&obj_parsed, &chars_parsed, ptr, limit) ||
-        parse_int(&obj_parsed, &chars_parsed, ptr, limit) ||
-        parse_atomic_symbol(&obj_parsed, &chars_parsed, ptr, limit) ||
-        parse_marked_symbol(&obj_parsed, &chars_parsed, ptr, limit) ||
-        parse_list(&obj_parsed, &chars_parsed, ptr, limit)) {
-      list_push_object(&result, &obj_parsed);
-      ptr += chars_parsed;
-      *target = list_to_object(result);
-      *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
-      return psResult;
-    } else {
-      *target = error_to_object(error_from_chars(irisErrorSyntaxError, "unknown symbol sequence"));
-      list_destroy(&result);
-      return psError;
+    ParseStatus status = psAbort;
+    size_t i = 0ULL;
+    while ((status == psAbort) && (i < (sizeof(parsing_procs) / sizeof(ParseProc)))) {
+      status = parsing_procs[i](&obj_parsed, &chars_parsed, ptr, limit);
+      if (status == psError) {
+        list_destroy(&result);
+        *target = obj_parsed;
+        return psError;
+      } else if (status == psResult) {
+        list_push_object(&result, &obj_parsed);
+        ptr += chars_parsed;
+        *target = list_to_object(result);
+        *parsed = (size_t)(((ptrdiff_t)ptr - (ptrdiff_t)slice) / sizeof(char));
+        return psResult;
+      }
+      i++;
     }
+    *target = error_to_object(error_from_chars(irisErrorSyntaxError, "unknown symbol sequence"));
+    list_destroy(&result);
+    return psError;
   }
   return psAbort;
 }
@@ -239,7 +244,7 @@ static ParseStatus parse_list(IrisObject* target, size_t* parsed, const char* sl
       while ((status == psAbort) && (i < (sizeof(parsing_procs) / sizeof(ParseProc)))) {
         status = parsing_procs[i](&obj_parsed, &chars_parsed, ptr, limit);
         if (status == psError) {
-          *target = *target;
+          *target = obj_parsed;
           list_destroy(&result);
           return psError;
         } else if (status == psResult) {
@@ -297,7 +302,7 @@ static bool try_resolve_macro(IrisObject* target, const IrisList list, const Iri
     IrisObject leading = list.items[0];
     if ((leading.kind == irisObjectKindString) && dict_has(scope, leading)) {
       const IrisObject* resolved = dict_get_view(scope, leading);
-      if ((resolved->kind == irisObjectKindFunc) && (resolved->func_variant.is_macro == true)) {
+      if ((resolved->kind == irisObjectKindFunc) && func_is_macro(resolved->func_variant)) {
         *target = func_call(resolved->func_variant, &list.items[1], list.len - 1ULL);
         return true;
       }
@@ -313,6 +318,45 @@ static bool try_resolve_name(IrisObject* target, const IrisString str, const Iri
   }
   return false;
 }
+
+// ! should reflect codelist_resolve
+// difference between top-most resolving and nested is that it's required for nested lists to have function as its first elements
+static IrisObject codelist_resolve_nested(const IrisObject obj, const IrisDict scope) {
+  switch (obj.kind) {
+    case irisObjectKindString: {
+      IrisObject result;
+      if (try_resolve_name(&result, obj.string_variant, scope) == true) {
+        return result;
+      }
+      break;
+    }
+    case irisObjectKindList: {
+      IrisObject result;
+      if (try_resolve_macro(&result, obj.list_variant, scope) == true) {
+        return result;
+      } else {
+        result = list_to_object(list_new());
+        for (size_t i = 0ULL; i < obj.list_variant.len; i++) {
+          IrisObject resolved = codelist_resolve_nested(obj.list_variant.items[i], scope);
+          if (resolved.kind == irisObjectKindError) {
+            object_destroy(&result);
+            return resolved;
+          }
+          list_push_object(&result.list_variant, &resolved);
+        }
+        if ((obj.list_variant.len > 0ULL) && (result.list_variant.items[0].kind != irisObjectKindFunc)) {
+          object_destroy(&result);
+          return error_to_object(error_from_chars(irisErrorNameError, "unknown function name"));
+        }
+        return result;
+      }
+    }
+    default: break;
+  }
+  return object_copy(obj);
+}
+
+// todo: forward name resolving
 
 IrisObject codelist_resolve(const IrisObject obj, const IrisDict scope) {
   switch (obj.kind) {
@@ -330,19 +374,13 @@ IrisObject codelist_resolve(const IrisObject obj, const IrisDict scope) {
       } else {
         result = list_to_object(list_new());
         for (size_t i = 0ULL; i < obj.list_variant.len; i++) {
-          IrisObject resolved = codelist_resolve(obj.list_variant.items[i], scope);
+          IrisObject resolved = codelist_resolve_nested(obj.list_variant.items[i], scope);
           if (resolved.kind == irisObjectKindError) {
             object_destroy(&result);
             return resolved;
           }
           list_push_object(&result.list_variant, &resolved);
         }
-        // todo: this applies to top-most module body too which isn't desirable
-        //       could fix by implementing function exactly like this, but without checking, but it's not that good
-        // if ((obj.list_variant.len > 0ULL) && (result.list_variant.items[0].kind != irisObjectKindFunc)) {
-        //   object_destroy(&result);
-        //   return error_to_object(error_from_chars(irisErrorNameError, "unknown function name"));
-        // }
         return result;
       }
     }

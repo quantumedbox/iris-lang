@@ -1,5 +1,5 @@
-lisp
-====
+iris lisp
+=========
 todo:
 ----
 - scoping
@@ -9,31 +9,13 @@ todo:
 - interface to define builtin functions via iris syntax itself
 - function interface to work with builtin types
 - compilation to shared objects, usage of iris as statically linkable module
+- full independence of interpreter states, including usage of thread-local allocators
 
 goals:
 -----
 - be poetic
-- typed-by-default and high-performant lisp
 - metaprogramming / generalization is key
 - controllable persistence
 - optimizable by design
-- lists as reversed arrays
 - philosophy of dynamic and metamorphic C
 - automatic parallelization of side-effect free code
-
-- this particular implementation is restricted to typed that are valid
-- for .add-64 builtin function, user don't have to specify types unless required
-(defn + [l r]
-  (.add-64 l r))
-
-- recursions should be inlined as much as possible
-(defn fib [n]
-  (if (<= n 1)
-    n
-    (+ (fib (dec n) (fib (- n 2))))))
-
-- customizable reader for extending functionalities
-(defn my-reader [string]
-  "receives string and parses it to list of code data"
-  (pass))
-(!set-reader my-reader)

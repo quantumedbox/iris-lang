@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-// todo: it's not very good that header of this file is colliding with <types/iris_string.h>
-//       we're using it by "types/iris_string.h" for now, but it might be problematic in the future
-
 // todo: when reading from file stream there's no way to singal status of reading to caller,
 //       we should consider some way to do so
 
@@ -12,6 +9,8 @@
 
 // todo: access of runes / individual characters
 // todo: search in utf8 encoded string might be done from the end if end is closer to sought-for rune
+
+// todo: long strings should be compared byte by byte
 
 #include "types/iris_types.h"
 #include "iris_memory.h"
@@ -36,7 +35,7 @@ bool string_is_empty(const IrisString str) {
           fast, but not sure about distribution
           main problem is that it's extremely likely to have collisions with integers
 */
-void string_hash(IrisString* str) {
+static void string_hash(IrisString* str) {
   assert(pointer_is_valid(str));
   assert(string_is_valid(*str));
   size_t hash = 5381ULL;
@@ -58,7 +57,7 @@ IrisString string_copy(const IrisString str) {
 }
 
 IrisString string_from_chars(const char* chars) {
-  // assert(pointer_is_valid(chars));
+  assert(pointer_is_valid(chars));
   size_t len = strlen(chars);
   IrisString result = {
     .data = iris_alloc(len, char),

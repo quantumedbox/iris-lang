@@ -14,8 +14,8 @@ typedef struct _IrisInterThread {
 } IrisInterThread;
 
 typedef struct {
-  IrisList inhereted_scopes; // immutable formed scopes
-  IrisDict local_scope; // interpreter-local scope that could be modified
+  IrisList inhereted_scopes;  // immutable formed scopes
+  IrisDict local_scope;       // interpreter-local scope that could be modified
 } IrisInter;
 
 typedef struct {

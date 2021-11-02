@@ -4,15 +4,18 @@
 #include "iris_memory.h"
 #include "iris_utils.h"
 
+// todo: it could be quite dangerous to have function pointers in data
+//       such things should be locked from user access
+
 IrisFunc func_from_cfunc(IrisFuncPrototype cfunc) {
-  assert(pointer_is_valid(cfunc));
+  assert(pointer_is_valid((const void*)cfunc));
   IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc /*, .is_macro = false*/ };
   return result;
 }
 
 IrisFunc func_macro_from_cfunc(IrisFuncPrototype cfunc) {
-  assert(pointer_is_valid(cfunc));
-  IrisFunc result = { .type = irisFuncTypeC, .cfunc = cfunc, .is_macro = true };
+  assert(pointer_is_valid((const void*)cfunc));
+  IrisFunc result = { .type = irisFuncTypeCMacro, .cfunc = cfunc };
   return result;
 }
 
@@ -34,6 +37,9 @@ IrisObject func_call(const IrisFunc func, const IrisObject* args, size_t arg_cou
     case irisFuncTypeC:
       result = func.cfunc(args, arg_count);
       break;
+    case irisFuncTypeCMacro:
+      result = func.cfunc(args, arg_count);
+      break;
     default:
       panic("unsupported function type"); // unreachable, func_is_valid should cover such cases
   }
@@ -41,9 +47,16 @@ IrisObject func_call(const IrisFunc func, const IrisObject* args, size_t arg_cou
   return result;
 }
 
+bool func_is_macro(const IrisFunc func) {
+  assert(func_is_valid(func));
+  return func.type == irisFuncTypeCMacro;
+}
+
 bool func_is_valid(const IrisFunc func) {
   switch (func.type) {
     case irisFuncTypeC:
+      return pointer_is_valid(func.cfunc);
+    case irisFuncTypeCMacro:
       return pointer_is_valid(func.cfunc);
     case irisFuncTypeNone:
       return false;
@@ -54,15 +67,15 @@ bool func_is_valid(const IrisFunc func) {
 
 void func_destroy(IrisFunc* func) {
   assert(func_is_valid(*func));
-  if ((IrisObjectKind)func->type == irisObjectKindList) {
-    list_destroy(&func->codedata);
-  }
+  // if ((IrisObjectKind)func->type == irisObjectKindList) {
+  //   list_destroy(&func->codedata);
+  // }
   func_move(func);
 }
 
 void func_move(IrisFunc* func) {
   func->type = irisFuncTypeNone;
-  // func->cfunc = NULL;
+  func->cfunc = NULL;
 }
 
 // todo: provide function 'database' for retrieving special data
@@ -81,13 +94,13 @@ void func_print_internal(const IrisFunc func, bool newline) {
       if (newline) { (void)fputc('\n', stdout); }
       fflush(stdout);
       break;
-    case irisFuncTypeList:
-      (void)fprintf(stdout, "<callable | codedata: ");
-      list_print_repr(func.codedata, false);
-      (void)fputc('>', stdout);
-      if (newline) { (void)fputc('\n', stdout); }
-      fflush(stdout);
-      break;
+    // case irisFuncTypeList:
+    //   (void)fprintf(stdout, "<callable | codedata: ");
+    //   list_print_repr(func.codedata, false);
+    //   (void)fputc('>', stdout);
+    //   if (newline) { (void)fputc('\n', stdout); }
+    //   fflush(stdout);
+    //   break;
     default:
       panic("internal printing for function variant unspecified");
   }

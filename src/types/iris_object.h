@@ -3,6 +3,7 @@
 
 // todo: hide fields of structs from user, objects should be opaque
 // todo: compile-time option for size of integer type, for example, IRIS_INT_PORTABLE that forces single size of integers and all architectures
+// todo: objects are too heavy. currently they require 40 bytes each which is enormous, for reference: Lua objects are only 12 bytes
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -15,7 +16,6 @@ struct _IrisDict;
 struct _IrisFunc;
 struct _IrisError;
 struct _IrisRefCell;
-struct _IrisClass;
 
 #include "types/iris_list.h"
 #include "types/iris_string.h"
@@ -34,7 +34,6 @@ typedef enum {
   irisObjectKindString,
   irisObjectKindList,
   irisObjectKindDict,
-  // irisObjectKindClass, // todo: object type that has runtime created archetype
   N_OBJECT_KINDS
 } IrisObjectKind;
 
@@ -51,7 +50,6 @@ typedef struct _IrisObject {
     IrisFunc    func_variant;
     IrisRefCell refcell_variant;
     IrisError   error_variant;
-    // IrisClass   class_variant;
   };
 } IrisObject;
 

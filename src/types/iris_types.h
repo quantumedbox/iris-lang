@@ -7,4 +7,22 @@
 //       when IRIS_OBJECT_H isn't defined or something
 #include "types/iris_object.h"
 
+typedef struct {
+  // Yet unformed scope used in reader to fill in local definitions
+  const IrisList inhereted_scopes;  // immutable formed scopes
+  IrisDict       local_scope;       // interpreter-local scope that could be modified
+} IrisScopeUnformed;
+
+typedef struct {
+  const IrisList inhereted_scopes;  // immutable formed scopes
+  const IrisDict local_scope;       // interpreter-local scope that could be modified
+} IrisScope;
+
+inline IrisScope iris_scope_form(const IrisScopeUnformed scope) {
+  return (IrisScope){
+    .inhereted_scopes = scope.inhereted_scopes,
+    .local_scope = scope.local_scope
+  };
+}
+
 #endif
